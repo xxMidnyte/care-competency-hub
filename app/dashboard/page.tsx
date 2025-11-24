@@ -18,7 +18,7 @@ export default function DashboardPage() {
         return;
       }
 
-      setEmail(user.email);
+      setEmail(user.email ?? null);
 
       // fetch profile
       const { data: profile } = await supabase
