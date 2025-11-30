@@ -1,46 +1,106 @@
 @import "tailwindcss";
 
-/* THEME COLORS */
+/* -------------------------------------------------------
+   THEME VARIABLES (driven by <html data-theme="...">)
+   ------------------------------------------------------- */
+
+/* Default (no data-theme) = dark */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #020617;      /* slate-950 */
+  --foreground: #e5e7eb;      /* slate-200 */
+  --surface: #020617;
+  --surface-soft: #020617;
 }
 
+:root[data-theme="dark"] {
+  --background: #020617;
+  --foreground: #e5e7eb;
+  --surface: #020617;
+  --surface-soft: #020617;
+}
+
+:root[data-theme="light"] {
+  --background: #f1f5f9;      /* slate-100 */
+  --foreground: #020617;      /* dark text */
+  --surface: #ffffff;         /* surfaces/cards */
+  --surface-soft: #e2e8f0;    /* subtle panels */
+}
+
+/* Tailwind theme bridge */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-soft: var(--surface-soft);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* DARK MODE */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* -------------------------------------------------------
+   GLOBAL BODY
+   ------------------------------------------------------- */
 
-/* GLOBAL FONT & COLORS */
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
 }
 
-/* GLOBAL TYPOGRAPHY SCALE (the new part) */
+/* -------------------------------------------------------
+   GLOBAL TYPE SCALE
+   ------------------------------------------------------- */
+
 html {
-  font-size: 16px;        /* mobile base */
+  font-size: 16px;
 }
 
 @media (min-width: 768px) {
   html {
-    font-size: 17px;      /* tablets & small laptops */
+    font-size: 17px;
   }
 }
 
 @media (min-width: 1280px) {
   html {
-    font-size: 18px;      /* desktops & large monitors */
+    font-size: 18px;
   }
+}
+
+/* -------------------------------------------------------
+   HERO & FOOTER HELPERS
+   ------------------------------------------------------- */
+
+.hero-shell {
+  background:
+    radial-gradient(circle at bottom center,
+      rgba(16, 185, 129, 0.16),
+      transparent 60%);
+}
+
+:root[data-theme="light"] .hero-shell {
+  background:
+    radial-gradient(circle at bottom center,
+      rgba(16, 185, 129, 0.10),
+      transparent 55%);
+}
+
+.hero-title {
+  color: var(--foreground);
+}
+
+/* Footer (kept dark in both themes) */
+.site-footer {
+  background:
+    radial-gradient(circle at top center,
+      rgba(15, 23, 42, 0.9),
+      #020617 60%);
+  color: #e5e7eb;
+}
+
+:root[data-theme="light"] .site-footer {
+  background:
+    radial-gradient(circle at top center,
+      rgba(15, 23, 42, 0.95),
+      #020617 65%);
+  color: #e5e7eb;
 }

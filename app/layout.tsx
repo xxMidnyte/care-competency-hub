@@ -2,6 +2,7 @@
 import "./globals.css";
 import Link from "next/link";
 import Image from "next/image";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata = {
   title: "CareCompetencyHub",
@@ -14,11 +15,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-screen antialiased">
         <div className="flex min-h-screen flex-col">
-          {/* TOP NAVBAR */}
-          <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
+          {/* TOP NAVBAR (always dark) */}
+          <header className="border-b border-slate-900 bg-slate-950/95 text-slate-100 backdrop-blur">
             <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
               {/* BRAND */}
               <Link href="/" className="flex items-center gap-2">
@@ -35,14 +36,21 @@ export default function RootLayout({
                 </span>
               </Link>
 
-              {/* NAV LINKS */}
-              <div className="flex gap-3 text-sm">
-                <Link
-                  href="/dashboard"
-                  className="text-slate-300 hover:text-white hover:underline"
-                >
-                  Manager dashboard
-                </Link>
+              {/* NAV LINKS + THEME TOGGLE */}
+              <div className="flex items-center gap-3 text-sm">
+                {/* THEME TOGGLE */}
+                <ThemeToggle />
+
+                {/* Hide on homepage ONLY */}
+                {typeof window !== "undefined" &&
+                  window.location.pathname !== "/" && (
+                    <Link
+                      href="/dashboard"
+                      className="text-slate-200 hover:text-white hover:underline"
+                    >
+                      Manager dashboard
+                    </Link>
+                  )}
 
                 <Link
                   href="/login"
@@ -66,8 +74,8 @@ export default function RootLayout({
             {children}
           </main>
 
-          {/* FOOTER */}
-          <footer className="border-t border-slate-800 bg-slate-950/90">
+          {/* FOOTER (already forced dark via .site-footer in globals.css) */}
+          <footer className="border-t border-slate-800 site-footer">
             <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 md:flex-row md:items-start md:justify-between">
               {/* Brand + tagline */}
               <div className="space-y-3 text-sm">
@@ -101,10 +109,7 @@ export default function RootLayout({
                   </h3>
                   <ul className="mt-3 space-y-2 text-slate-300">
                     <li>
-                      <Link
-                        href="/pricing"
-                        className="hover:text-emerald-300"
-                      >
+                      <Link href="/pricing" className="hover:text-emerald-300">
                         Pricing
                       </Link>
                     </li>
@@ -139,7 +144,7 @@ export default function RootLayout({
                     <li>
                       <Link href="/help" className="hover:text-emerald-300">
                         Help & FAQs
-                    </Link>
+                      </Link>
                     </li>
                   </ul>
                 </div>
