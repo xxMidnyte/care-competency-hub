@@ -158,11 +158,11 @@ export default function AIGeneratorPage() {
       }
 
       // The API returns { sections: { purpose, objectives, ... } }
-      const cleaned: GeneratedContent = Object.fromEntries(
-        Object.entries(data.sections).filter(
-          ([_, v]) => v && String(v).trim().length > 0
+      const cleaned = Object.fromEntries(
+        Object.entries((data.sections ?? {}) as Record<string, unknown>).filter(
+          ([, v]) => typeof v === "string" && v.trim().length > 0
         )
-      );
+      ) as GeneratedContent;
 
       setGenerated(cleaned);
     } catch (err) {
