@@ -3,226 +3,163 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { FacilitySnapshotCard } from "./FacilitySnapshotCard";
 
 type Facility = {
   id: string;
   name: string | null;
 };
 
-export default function DashboardPage() {
+export default function AdminDashboardPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState<string | null>(null);
   const [orgId, setOrgId] = useState<string | null>(null);
-
   const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(
-    null
-  );
-  const [facilityError, setFacilityError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
-      // 1) Auth check
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        setLoading(true);
+        setError(null);
 
-      if (!user) {
-        router.replace("/login");
-        return;
-      }
+        // 1) Auth check
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
 
-      setEmail(user.email ?? null);
-
-      // 2) Get profile for default org
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("default_org_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Profile error", profileError);
-      }
-
-      if (!profile?.default_org_id) {
-        router.push("/create-org");
-        return;
-      }
-
-      const orgId = profile.default_org_id as string;
-      setOrgId(orgId);
-
-      // 3) Load all facilities for this org
-      const { data: facilitiesData, error: facilitiesError } = await supabase
-        .from("facilities")
-        .select("id, name")
-        .eq("org_id", orgId)
-        .order("name", { ascending: true });
-
-      if (facilitiesError) {
-        console.error("Facilities error", facilitiesError);
-        setFacilityError(
-          "Could not load facilities for this organization. Check Supabase data."
-        );
-        setLoading(false);
-        return;
-      }
-
-      const facs = (facilitiesData ?? []) as Facility[];
-      setFacilities(facs);
-
-      if (!facs.length) {
-        setFacilityError(
-          "No facilities found for this organization yet. Add a facility to see dashboard data."
-        );
-        setLoading(false);
-        return;
-      }
-
-      // 4) Restore last-selected facility from localStorage (if valid)
-      let defaultFacilityId: string | null = null;
-
-      if (typeof window !== "undefined") {
-        const saved = window.localStorage.getItem("cch:lastFacilityId");
-        if (saved && facs.some((f) => f.id === saved)) {
-          defaultFacilityId = saved;
+        if (userError || !user) {
+          router.push("/login");
+          return;
         }
+
+        setEmail(user.email ?? null);
+
+        // 2) Load org_id for this user
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("org_id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error(profileError);
+          setError("Unable to load your profile.");
+          return;
+        }
+
+        if (!profile?.org_id) {
+          setError("No organization found for this account.");
+          return;
+        }
+
+        setOrgId(profile.org_id);
+
+        // 3) Load facilities for this org
+        const { data: facilityRows, error: facilityError } = await supabase
+          .from("facilities")
+          .select("id, name")
+          .eq("org_id", profile.org_id)
+          .order("name", { ascending: true });
+
+        if (facilityError) {
+          console.error(facilityError);
+          setError("Unable to load facilities.");
+          return;
+        }
+
+        setFacilities(facilityRows ?? []);
+      } finally {
+        setLoading(false);
       }
-
-      // Fallback to first facility if nothing saved
-      if (!defaultFacilityId) {
-        defaultFacilityId = facs[0].id;
-      }
-
-      setSelectedFacilityId(defaultFacilityId);
-
-      // Persist selection for future visits
-      if (typeof window !== "undefined" && defaultFacilityId) {
-        window.localStorage.setItem("cch:lastFacilityId", defaultFacilityId);
-      }
-
-      setLoading(false);
     }
 
     load();
   }, [router]);
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    router.replace("/login");
-  }
-
-  function handleFacilityChange(id: string) {
-    setSelectedFacilityId(id);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("cch:lastFacilityId", id);
-    }
-  }
-
   if (loading) {
-    return <p>Loading dashboard…</p>;
+    return (
+      <div className="space-y-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          Admin
+        </p>
+        <h1 className="text-2xl font-semibold text-slate-50">
+          Loading admin dashboard…
+        </h1>
+        <p className="text-sm text-slate-300">
+          Fetching your organization and facilities.
+        </p>
+      </div>
+    );
   }
 
-  const selectedFacility =
-    facilities.find((f) => f.id === selectedFacilityId) ?? null;
+  if (error) {
+    return (
+      <div className="space-y-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          Admin
+        </p>
+        <h1 className="text-2xl font-semibold text-slate-50">
+          Admin dashboard
+        </h1>
+        <p className="text-sm text-red-300">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Top header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-slate-300">
-            Signed in as {email}
-          </p>
-          <p className="mt-1 text-xs text-slate-500">
-            Organization ID: {orgId}
-          </p>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="rounded-full border border-slate-600 px-4 py-1.5 text-xs text-slate-100 hover:bg-slate-800"
-        >
-          Log out
-        </button>
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          Admin
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold text-slate-50">
+          Admin dashboard (coming soon)
+        </h1>
+        <p className="mt-2 text-sm text-slate-300">
+          We&apos;re still building the full admin view for multi-facility
+          operators. For now, you can manage facilities and staff from the
+          manager dashboard.
+        </p>
       </div>
 
-      {/* Your three existing tiles */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p className="text-xs uppercase font-semibold text-slate-400">
-            Your organization
-          </p>
-          <p className="mt-2 text-sm text-slate-200">
-            You are the owner. Next: invite staff to your org.
-          </p>
-        </div>
+      <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 text-xs text-slate-200">
+        <p className="font-semibold text-slate-100">
+          Signed in as{" "}
+          <span className="font-mono text-emerald-300">
+            {email ?? "unknown"}
+          </span>
+        </p>
+        <p className="mt-1 text-slate-300">
+          Org ID:{" "}
+          <span className="font-mono text-slate-200">
+            {orgId ?? "not set"}
+          </span>
+        </p>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p className="text-xs uppercase font-semibold text-slate-400">
-            Competencies
+        <div className="mt-3">
+          <p className="text-[11px] font-semibold text-slate-400">
+            Facilities (read-only preview)
           </p>
-          <p className="mt-2 text-sm text-slate-200">
-            Build CNA/RN/PT competency templates.
-          </p>
-        </div>
-
-        <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-          <p className="text-xs uppercase font-semibold text-slate-400">
-            Assignments
-          </p>
-          <p className="mt-2 text-sm text-slate-200">
-            Track overdue and upcoming competencies.
-          </p>
-        </div>
-      </div>
-
-      {/* Facility selector + snapshot */}
-      <div className="mt-4 space-y-3">
-        {/* Facility selector */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Facility
+          {facilities.length === 0 ? (
+            <p className="mt-1 text-[11px] text-slate-500">
+              No facilities found yet for this organization.
             </p>
-            <p className="text-xs text-slate-500">
-              Choose which building’s compliance you want to view.
-            </p>
-          </div>
-
-          {facilities.length > 0 && (
-            <select
-              value={selectedFacilityId ?? ""}
-              onChange={(e) => handleFacilityChange(e.target.value)}
-              className="min-w-[220px] rounded-full border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-emerald-500"
-            >
+          ) : (
+            <ul className="mt-2 space-y-1 text-[11px]">
               {facilities.map((f) => (
-                <option key={f.id} value={f.id}>
+                <li
+                  key={f.id}
+                  className="rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2"
+                >
                   {f.name || "Unnamed facility"}
-                </option>
+                </li>
               ))}
-            </select>
+            </ul>
           )}
         </div>
-
-        {/* Error or snapshot */}
-        {facilityError && (
-          <div className="rounded-2xl border border-amber-500/40 bg-amber-950/40 p-4 text-sm text-amber-100">
-            {facilityError}
-          </div>
-        )}
-
-        {selectedFacility && (
-          <FacilitySnapshotCard
-            facilityId={selectedFacility.id}
-            facilityName={selectedFacility.name ?? undefined}
-          />
-        )}
       </div>
     </div>
   );
