@@ -1,8 +1,7 @@
-// app/dashboard/competencies/ai-builder/page.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 // ------------------------------
 // Option sets
@@ -65,8 +64,7 @@ const SECTION_LABEL_MAP: Record<string, string> = SECTION_OPTIONS.reduce(
 // Main Component
 // ------------------------------
 export default function AIGeneratorPage() {
-  const router = useRouter();
-
+  // Left-side form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -77,21 +75,75 @@ export default function AIGeneratorPage() {
     SECTION_OPTIONS.map((s) => s.key).filter((k) => k !== "purpose") // purpose always on
   );
   const [specialInstructions, setSpecialInstructions] = useState("");
+
+  // AI + editing state
   const [generated, setGenerated] = useState<GeneratedContent>({});
   const [isGenerating, setIsGenerating] = useState(false);
-
-  // inline editing state
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
-  // saving state
+  // Save + org state
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const [orgId, setOrgId] = useState<string | null>(null);
+  const [orgLoadError, setOrgLoadError] = useState<string | null>(null);
+
   const hasPreview = Object.keys(generated).length > 0;
   const canGenerate = title.trim().length > 0 && selectedRoles.length > 0;
 
+  // ------------------------------
+  // Load org_id for current user
+  // ------------------------------
+  useEffect(() => {
+    async function loadOrg() {
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+          console.error("User load error:", userError);
+          setOrgLoadError("You must be logged in to save competencies.");
+          return;
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("org_id")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("Profile load error:", profileError);
+          setOrgLoadError("Could not load your profile.");
+          return;
+        }
+
+        if (!profile?.org_id) {
+          console.warn("No org_id on profile for user", user.id);
+          setOrgLoadError(
+            "Your user record is missing an organization. (No org_id on profile.)"
+          );
+          return;
+        }
+
+        console.log("✅ Resolved orgId from profiles:", profile.org_id);
+        setOrgId(profile.org_id as string);
+      } catch (err) {
+        console.error("Org load error:", err);
+        setOrgLoadError("Failed to load organization info.");
+      }
+    }
+
+    loadOrg();
+  }, []);
+
+  // ------------------------------
+  // Helpers
+  // ------------------------------
   const toggleRole = (role: string) => {
     setSelectedRoles((prev) =>
       prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
@@ -175,61 +227,74 @@ export default function AIGeneratorPage() {
     }
   };
 
-  // ------------------------------
-  // 💾 Save competency to Supabase
-  // ------------------------------
-  const handleSave = async () => {
-    setSaveMessage(null);
-    setSaveError(null);
+ // ------------------------------
+// 💾 Save competency to Supabase
+// ------------------------------
+const handleSave = async () => {
+  alert("HANDLE SAVE V7");  // 👈 add this at the very top
+  setSaveMessage(null);
+  setSaveError(null);
 
-    if (!title.trim() || Object.keys(generated).length === 0) {
-      setSaveError("Generate a competency before saving.");
+  if (!title.trim() || Object.keys(generated).length === 0) {
+    setSaveError("Generate a competency before saving.");
+    return;
+  }
+
+  if (!orgId) {
+    console.error("❌ handleSave called without orgId:", {
+      orgId,
+      orgLoadError,
+    });
+    setSaveError(
+      orgLoadError || "No organization resolved. Cannot save competency."
+    );
+    return;
+  }
+
+  // 🔍 Build and log the exact payload we're about to send
+  const payload = {
+    title,
+    description,
+    roles: selectedRoles,
+    setting,
+    risk,
+    language,
+    sections: generated,
+    org_id: orgId, // 👈 use snake_case explicitly
+  };
+
+  console.log("💾 Save payload:", payload);
+
+  setIsSaving(true);
+  try {
+    const res = await fetch("/api/competencies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("Save error:", data);
+      setSaveError(
+        data?.error || "Failed to save competency. Please try again."
+      );
       return;
     }
 
-    setIsSaving(true);
-    try {
-      const res = await fetch("/api/competencies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          description,
-          roles: selectedRoles,
-          setting,
-          risk,
-          language,
-          sections: generated,
-        }),
-      });
+    console.log("✅ Saved competency:", data);
+    setSaveMessage("Competency saved successfully.");
+    // later: router.push(`/dashboard/library/${data.id}`);
+  } catch (err) {
+    console.error("Save network error:", err);
+    setSaveError("Network error saving competency.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
-      const data = await res.json();
 
-      if (!res.ok) {
-        console.error("Save error:", data);
-        setSaveError(
-          data?.error || "Failed to save competency. Please try again."
-        );
-        return;
-      }
-
-      setSaveMessage("Competency saved successfully.");
-
-      // OPTIONAL: jump straight to the library detail page
-      if (data?.id) {
-        router.push(`/dashboard/library/${data.id}`);
-      }
-    } catch (err) {
-      console.error("Save network error:", err);
-      setSaveError("Network error saving competency.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // ------------------------------
-  // UI
-  // ------------------------------
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 px-6 py-8">
       <h1 className="text-2xl font-semibold tracking-tight">
@@ -239,6 +304,12 @@ export default function AIGeneratorPage() {
         Generate complete competencies, checklists, and quizzes in any language
         – then tweak them inline before saving.
       </p>
+
+      {orgLoadError && (
+        <div className="mt-3 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-xs text-amber-100">
+          {orgLoadError}
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6 mt-8">
         {/* LEFT - Builder Form */}
@@ -428,7 +499,7 @@ export default function AIGeneratorPage() {
               <button
                 type="button"
                 onClick={handleSave}
-                disabled={isSaving || !hasPreview}
+                disabled={isSaving || !hasPreview || !orgId}
                 className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-950 hover:bg-sky-400 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSaving ? "Saving…" : "Save competency"}

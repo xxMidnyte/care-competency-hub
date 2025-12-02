@@ -2,7 +2,7 @@
 import "./globals.css";
 import Link from "next/link";
 import Image from "next/image";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { TopNav } from "@/components/TopNav";
 
 export const metadata = {
   title: "CareCompetencyHub",
@@ -18,63 +18,15 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen antialiased">
         <div className="flex min-h-screen flex-col">
-          {/* TOP NAVBAR (always dark) */}
-          <header className="border-b border-slate-900 bg-slate-950/95 text-slate-100 backdrop-blur">
-            <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-              {/* BRAND */}
-              <Link href="/" className="flex items-center gap-2">
-                <Image
-                  src="/logo-mark.png"
-                  alt="CareCompetencyHub logo"
-                  width={32}
-                  height={32}
-                  className="h-8 w-8 object-contain"
-                  priority
-                />
-                <span className="text-lg font-semibold tracking-tight">
-                  CareCompetencyHub
-                </span>
-              </Link>
-
-              {/* NAV LINKS + THEME TOGGLE */}
-              <div className="flex items-center gap-3 text-sm">
-                {/* THEME TOGGLE */}
-                <ThemeToggle />
-
-                {/* Hide on homepage ONLY */}
-                {typeof window !== "undefined" &&
-                  window.location.pathname !== "/" && (
-                    <Link
-                      href="/dashboard"
-                      className="text-slate-200 hover:text-white hover:underline"
-                    >
-                      Manager dashboard
-                    </Link>
-                  )}
-
-                <Link
-                  href="/login"
-                  className="rounded-full border border-slate-700 px-4 py-1.5 text-slate-100 hover:bg-slate-800"
-                >
-                  Login
-                </Link>
-
-                <Link
-                  href="/signup"
-                  className="rounded-full bg-emerald-500 px-4 py-1.5 font-semibold text-slate-950 hover:bg-emerald-400"
-                >
-                  Get started
-                </Link>
-              </div>
-            </nav>
-          </header>
+          {/* TOP NAVBAR (now handled by TopNav client component) */}
+          <TopNav />
 
           {/* MAIN CONTENT */}
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
             {children}
           </main>
 
-          {/* FOOTER (already forced dark via .site-footer in globals.css) */}
+          {/* FOOTER (same as before) */}
           <footer className="border-t border-slate-800 site-footer">
             <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 md:flex-row md:items-start md:justify-between">
               {/* Brand + tagline */}

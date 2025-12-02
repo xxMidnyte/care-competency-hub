@@ -12,10 +12,10 @@ export default function HomePage() {
           </p>
 
           <h1 className="hero-title mt-3 text-3xl font-semibold leading-tight sm:text-4xl md:text-5xl">
-            Keep every staff competency{" "}
-            <span className="text-emerald-500">current, documented,</span>
+            Keep every staff member{" "}
+            <span className="text-emerald-500">competent</span>
             <br className="hidden sm:block" />
-            and <span className="text-emerald-500">survey-ready.</span>
+            and <span className="text-emerald-500">survey-ready!</span>
           </h1>
 
           <p className="mt-4 max-w-xl text-sm text-[var(--foreground)]/80">

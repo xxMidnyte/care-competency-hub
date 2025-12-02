@@ -1,35 +1,16 @@
 // app/api/competencies/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error(
-    "[/api/competencies] Missing Supabase env vars. " +
-      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY."
-  );
-}
-
-const supabase = SUPABASE_URL && SUPABASE_ANON_KEY
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
-
-type SectionsPayload = {
-  [key: string]: string | null;
-};
+// Dev-only fallback org_id (for local testing)
+// ⚠️ In production this will NOT be used.
+const DEV_FALLBACK_ORG_ID = "dc849a4b-afbc-4c27-8074-0cdb4688f7c3";
 
 export async function POST(req: NextRequest) {
   try {
-    if (!supabase) {
-      return NextResponse.json(
-        { error: "Supabase is not configured on the server." },
-        { status: 500 }
-      );
-    }
-
     const body = await req.json();
+
+    console.log("📥 /api/competencies raw body:", body);
 
     const {
       title,
@@ -39,117 +20,72 @@ export async function POST(req: NextRequest) {
       risk,
       language,
       sections,
-      orgId,
-      createdBy,
-    } = body as {
-      title: string;
-      description?: string;
-      roles: string[];
-      setting?: string | null;
-      risk?: string;
-      language?: string;
-      sections: SectionsPayload;
-      orgId?: string | null;
-      createdBy?: string | null;
-    };
+    } = body;
 
-    // --------- Basic validation ---------
-    if (!title || !title.trim()) {
+    if (!title || !sections) {
       return NextResponse.json(
-        { error: "Title is required." },
+        { error: "Missing required fields (title/sections)." },
         { status: 400 }
       );
     }
 
-    if (!roles || !Array.isArray(roles) || roles.length === 0) {
-      return NextResponse.json(
-        { error: "At least one role is required." },
-        { status: 400 }
+    // 1) Prefer orgId/org_id from body
+    let rawOrgId: string | undefined;
+    if (typeof body.orgId === "string") rawOrgId = body.orgId;
+    else if (typeof body.org_id === "string") rawOrgId = body.org_id;
+
+    // 2) Dev-only fallback
+    if (!rawOrgId) {
+      if (process.env.NODE_ENV === "production") {
+        console.error("❌ No orgId provided and dev fallback disabled in production.");
+        return NextResponse.json(
+          {
+            error:
+              "Missing orgId when saving competency (fallback disabled in production).",
+          },
+          { status: 400 }
+        );
+      }
+
+      console.warn(
+        "⚠️ Using DEV_FALLBACK_ORG_ID for competency insert. Do NOT use this in production."
       );
+      rawOrgId = DEV_FALLBACK_ORG_ID;
     }
 
-    if (!sections || typeof sections !== "object") {
-      return NextResponse.json(
-        { error: "Sections payload is required." },
-        { status: 400 }
-      );
-    }
+    console.log("✅ Using orgId for insert:", rawOrgId);
 
-    // --------- Insert into competencies ---------
-    const { data: competency, error: insertError } = await supabase
-      .from("competencies")
+    const { data, error } = await supabaseAdmin
+      .from("competency_templates")
       .insert({
-        org_id: orgId ?? null,
-        title: title.trim(),
-        description: description ?? null,
-        risk: risk ?? null,
-        roles,
-        setting: setting ?? null,
-        language: language ?? null,
-        created_by: createdBy ?? null,
+        org_id: rawOrgId,
+        title,
+        description: description || null,
+        roles: roles ?? [],
+        setting: setting || null,
+        risk: risk || "Medium",
+        language: language || "en",
+        // 🔑 this matches your NOT NULL "content" column
+        content: sections, // JSON/JSONB
       })
-      .select("*")
+      .select("id")
       .single();
 
-    if (insertError || !competency) {
-      console.error("[/api/competencies] Insert competency error:", insertError);
+    if (error) {
+      console.error("❌ Insert error:", error);
       return NextResponse.json(
-        { error: "Failed to save competency (insert error)." },
+        { error: error.message ?? "Failed to save competency." },
         { status: 500 }
       );
     }
 
-    const competencyId = competency.id as string;
-
-    // --------- Insert sections ---------
-    const sectionRows = Object.entries(sections)
-      .filter(([, value]) => value && String(value).trim().length > 0)
-      .map(([key, value]) => ({
-        competency_id: competencyId,
-        section_key: key,
-        content: String(value),
-      }));
-
-    if (sectionRows.length > 0) {
-      const { error: sectionsError } = await supabase
-        .from("competency_sections")
-        .insert(sectionRows);
-
-      if (sectionsError) {
-        console.error(
-          "[/api/competencies] Insert sections error:",
-          sectionsError
-        );
-        return NextResponse.json(
-          {
-            error: "Competency created, but failed to save sections.",
-            competencyId,
-          },
-          { status: 500 }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      {
-        competencyId,
-        competency,
-      },
-      { status: 201 }
-    );
+    console.log("✅ Competency saved with id:", data.id);
+    return NextResponse.json({ id: data.id }, { status: 200 });
   } catch (err) {
-    console.error("[/api/competencies] Unexpected error:", err);
+    console.error("❌ Unexpected /api/competencies error:", err);
     return NextResponse.json(
-      { error: "Unexpected error saving competency." },
+      { error: "Server error saving competency." },
       { status: 500 }
     );
   }
-}
-
-// Optional: reject GET explicitly so you see a clean JSON error instead of HTML
-export async function GET() {
-  return NextResponse.json(
-    { error: "Use POST to create competencies." },
-    { status: 405 }
-  );
 }
