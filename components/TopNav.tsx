@@ -35,7 +35,7 @@ export function TopNav() {
           "Manager";
 
         setUserInfo({
-          email: data.user.email ?? null,   // ✅ FIX 1
+          email: data.user.email ?? null, // ✅ FIX
           role,
         });
       } else {
@@ -47,7 +47,6 @@ export function TopNav() {
 
     load();
 
-    // Subscribe to auth changes
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
 
@@ -59,7 +58,7 @@ export function TopNav() {
           "Manager";
 
         setUserInfo({
-          email: session.user.email ?? null,  // ✅ FIX 2
+          email: session.user.email ?? null, // ✅ FIX
           role,
         });
       } else {
@@ -107,10 +106,8 @@ export function TopNav() {
 
         {/* NAV LINKS + INFO */}
         <div className="flex items-center gap-3 text-sm">
-          {/* THEME TOGGLE */}
           <ThemeToggle />
 
-          {/* Dashboard link */}
           {loggedIn && (
             <Link
               href="/dashboard"
@@ -120,7 +117,6 @@ export function TopNav() {
             </Link>
           )}
 
-          {/* Logged-in display */}
           {loggedIn && (
             <div className="flex items-center gap-2 text-[11px]">
               <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 font-medium text-emerald-300">
@@ -140,7 +136,6 @@ export function TopNav() {
             </div>
           )}
 
-          {/* Logged-out state */}
           {!loggedIn && !checking && (
             <>
               <Link
