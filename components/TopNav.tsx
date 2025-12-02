@@ -35,7 +35,7 @@ export function TopNav() {
           "Manager";
 
         setUserInfo({
-          email: data.user.email ?? null,
+          email: data.user.email ?? null,   // ✅ FIX 1
           role,
         });
       } else {
@@ -47,6 +47,7 @@ export function TopNav() {
 
     load();
 
+    // Subscribe to auth changes
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
 
@@ -58,7 +59,7 @@ export function TopNav() {
           "Manager";
 
         setUserInfo({
-          email: session.user.email,
+          email: session.user.email ?? null,  // ✅ FIX 2
           role,
         });
       } else {
@@ -109,7 +110,7 @@ export function TopNav() {
           {/* THEME TOGGLE */}
           <ThemeToggle />
 
-          {/* ALWAYS show dashboard when logged in */}
+          {/* Dashboard link */}
           {loggedIn && (
             <Link
               href="/dashboard"
