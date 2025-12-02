@@ -35,7 +35,7 @@ export function TopNav() {
           "Manager";
 
         setUserInfo({
-          email: data.user.email,
+          email: data.user.email ?? null,
           role,
         });
       } else {
