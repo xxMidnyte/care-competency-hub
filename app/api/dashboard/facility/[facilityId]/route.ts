@@ -1,4 +1,4 @@
-// app/api/policies/[policyId]/route.ts
+// app/api/dashboard/facility/[facilityId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -8,119 +8,89 @@ function isUuid(value: string | undefined): value is string {
 }
 
 /**
- * GET /api/policies/[policyId]
- * Returns a single policy row.
+ * GET /api/dashboard/facility/[facilityId]
+ * Returns a facility + related data for the manager dashboard.
+ *
+ * Adjust table names/fields if yours differ:
+ * - "facilities"
+ * - "staff_members"
+ * - "competency_assignments"
  */
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ policyId: string }> }
+  { params }: { params: Promise<{ facilityId: string }> }
 ) {
-  const { policyId } = await context.params;
+  const { facilityId } = await params;
 
-  if (!isUuid(policyId)) {
+  if (!isUuid(facilityId)) {
     return NextResponse.json(
-      { error: "Invalid policyId" },
+      { error: "Invalid facilityId" },
       { status: 400 }
     );
   }
 
-  const { data, error } = await supabase
-    .from("policies")
-    .select("*")
-    .eq("id", policyId)
-    .single();
+  // Fetch facility, staff, and assignments in parallel
+  const [
+    { data: facility, error: facilityError },
+    { data: staff, error: staffError },
+    { data: assignments, error: assignmentsError },
+  ] = await Promise.all([
+    supabase
+      .from("facilities")
+      .select("*")
+      .eq("id", facilityId)
+      .single(),
 
-  if (error) {
-    console.error("GET /api/policies/[policyId] error:", error);
+    supabase
+      .from("staff_members")
+      .select("*")
+      .eq("facility_id", facilityId),
+
+    supabase
+      .from("competency_assignments")
+      .select("*")
+      .eq("facility_id", facilityId),
+  ]);
+
+  if (facilityError) {
+    console.error(
+      "GET /api/dashboard/facility/[facilityId] facility error:",
+      facilityError
+    );
     return NextResponse.json(
-      { error: "Failed to load policy" },
+      { error: "Failed to load facility" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ policy: data }, { status: 200 });
-}
-
-/**
- * PATCH /api/policies/[policyId]
- * Updates fields on a policy. Body should be a partial policy object.
- */
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ policyId: string }> }
-) {
-  const { policyId } = await context.params;
-
-  if (!isUuid(policyId)) {
-    return NextResponse.json(
-      { error: "Invalid policyId" },
-      { status: 400 }
+  if (staffError) {
+    console.error(
+      "GET /api/dashboard/facility/[facilityId] staff error:",
+      staffError
     );
-  }
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
     return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 }
-    );
-  }
-
-  // Don’t allow client to change the primary key
-  delete body.id;
-
-  const { data, error } = await supabase
-    .from("policies")
-    .update({
-      ...body,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", policyId)
-    .select("*")
-    .single();
-
-  if (error) {
-    console.error("PATCH /api/policies/[policyId] error:", error);
-    return NextResponse.json(
-      { error: "Failed to update policy" },
+      { error: "Failed to load facility staff" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ policy: data }, { status: 200 });
-}
-
-/**
- * DELETE /api/policies/[policyId]
- * Deletes a policy row.
- */
-export async function DELETE(
-  _req: NextRequest,
-  context: { params: Promise<{ policyId: string }> }
-) {
-  const { policyId } = await context.params;
-
-  if (!isUuid(policyId)) {
-    return NextResponse.json(
-      { error: "Invalid policyId" },
-      { status: 400 }
+  if (assignmentsError) {
+    console.error(
+      "GET /api/dashboard/facility/[facilityId] assignments error:",
+      assignmentsError
     );
-  }
-
-  const { error } = await supabase
-    .from("policies")
-    .delete()
-    .eq("id", policyId);
-
-  if (error) {
-    console.error("DELETE /api/policies/[policyId] error:", error);
     return NextResponse.json(
-      { error: "Failed to delete policy" },
+      { error: "Failed to load facility assignments" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ success: true }, { status: 200 });
+  return NextResponse.json(
+    {
+      facility,
+      staff: staff ?? [],
+      assignments: assignments ?? [],
+    },
+    { status: 200 }
+  );
 }
