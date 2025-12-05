@@ -3,9 +3,11 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import ProgressShield from "@/components/ProgressShield";
-import { useRouter } from "next/navigation";
+import { useOrg } from "@/hooks/useOrg";
+import { hasRoleAtLeast } from "@/lib/permissions";
 
 type StaffProgressRow = {
   staff_id: string;
@@ -34,12 +36,13 @@ type StaffMemberRow = {
 export default function StaffDashboardPage() {
   const router = useRouter();
 
+  // Org + role context
+  const { loading: orgLoading, org, organizationId } = useOrg();
+
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState<StaffProgressRow | null>(null);
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  const [orgId, setOrgId] = useState<string | null>(null);
 
   // Org staff management state
   const [staffLoading, setStaffLoading] = useState(false);
@@ -50,10 +53,8 @@ export default function StaffDashboardPage() {
   const [addingStaff, setAddingStaff] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // NOTE: Right now this is always true so you can use the UI.
-  // When your roles are finalized, gate this like:
-  // const showManageStaff = profile.role in ["manager","admin"]
-  const showManageStaff = true;
+  // Manager / admin / dev can manage staff
+  const showManageStaff = hasRoleAtLeast(org, "manager");
 
   async function loadStaffMembers(orgIdValue: string) {
     setStaffLoading(true);
@@ -78,15 +79,20 @@ export default function StaffDashboardPage() {
 
   useEffect(() => {
     async function load() {
+      // Wait for org context to resolve
+      if (orgLoading) return;
+
       setLoading(true);
       setError(null);
 
+      // Require logged-in user
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
+        console.error("Auth error:", userError);
         setError("You must be logged in to view your dashboard.");
         setLoading(false);
         return;
@@ -99,23 +105,16 @@ export default function StaffDashboardPage() {
         return;
       }
 
-      // 1) Get org_id
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("org_id")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError || !profile?.org_id) {
+      // Require organization context
+      const orgIdValue = organizationId;
+      if (!orgIdValue) {
+        console.error("No organizationId in context");
         setError("Unable to load your organization.");
         setLoading(false);
         return;
       }
 
-      const orgIdValue = profile.org_id as string;
-      setOrgId(orgIdValue);
-
-      // 2) Fetch progress from view
+      // 1) Fetch progress from view
       const { data: progressRows, error: progressError } = await supabase
         .from("staff_competency_progress")
         .select("*")
@@ -124,7 +123,7 @@ export default function StaffDashboardPage() {
         .limit(1);
 
       if (progressError) {
-        console.error(progressError);
+        console.error("Error loading progress:", progressError);
         setError("Unable to load your competency progress.");
         setLoading(false);
         return;
@@ -133,7 +132,7 @@ export default function StaffDashboardPage() {
       const row = (progressRows && progressRows[0]) || null;
       setProgress(row as StaffProgressRow | null);
 
-      // 3) Fetch current assignments for this staff member (if any)
+      // 2) Fetch current assignments for this staff member (if any)
       if (row?.staff_id) {
         const { data: assignRows, error: assignError } = await supabase
           .from("staff_competency_assignments")
@@ -142,17 +141,19 @@ export default function StaffDashboardPage() {
           .order("due_date", { ascending: true });
 
         if (assignError) {
-          console.error(assignError);
+          console.error("Error loading assignments:", assignError);
           setError("Unable to load your assignments.");
           setLoading(false);
           return;
         }
 
         setAssignments((assignRows || []) as AssignmentRow[]);
+      } else {
+        setAssignments([]);
       }
 
-      // 4) Load org staff list (for manager/admin UI)
-      if (orgIdValue && showManageStaff) {
+      // 3) Load org staff list (for manager/admin/dev UI)
+      if (showManageStaff) {
         await loadStaffMembers(orgIdValue);
       }
 
@@ -160,7 +161,7 @@ export default function StaffDashboardPage() {
     }
 
     load();
-  }, [showManageStaff]);
+  }, [orgLoading, organizationId, showManageStaff]);
 
   const completionRatio = progress?.completion_ratio ?? 0;
   const totalAssigned = progress?.total_assigned ?? 0;
@@ -175,7 +176,8 @@ export default function StaffDashboardPage() {
 
   async function handleAddStaff(e: FormEvent) {
     e.preventDefault();
-    if (!orgId) {
+
+    if (!organizationId) {
       setStaffError("Missing organization context.");
       return;
     }
@@ -192,7 +194,7 @@ export default function StaffDashboardPage() {
     setAddingStaff(true);
 
     const { error } = await supabase.from("staff_members").insert({
-      org_id: orgId,
+      org_id: organizationId,
       full_name: name,
       email,
     });
@@ -207,11 +209,11 @@ export default function StaffDashboardPage() {
 
     setNewStaffName("");
     setNewStaffEmail("");
-    await loadStaffMembers(orgId);
+    await loadStaffMembers(organizationId);
   }
 
   async function handleDeleteStaff(id: string) {
-    if (!orgId) return;
+    if (!organizationId) return;
 
     const confirmed = window.confirm(
       "Remove this staff member from your organization? This will not delete historical assignments, but they will no longer appear in your active staff list."
@@ -223,7 +225,7 @@ export default function StaffDashboardPage() {
       .from("staff_members")
       .delete()
       .eq("id", id)
-      .eq("org_id", orgId);
+      .eq("org_id", organizationId);
 
     setDeletingId(null);
 
@@ -235,6 +237,8 @@ export default function StaffDashboardPage() {
 
     setStaffMembers((prev) => prev.filter((s) => s.id !== id));
   }
+
+  const isLoadingAny = loading || orgLoading;
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
@@ -258,19 +262,19 @@ export default function StaffDashboardPage() {
       </div>
 
       {/* STATUS */}
-      {loading && (
+      {isLoadingAny && (
         <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-200">
           Loading your progress…
         </div>
       )}
 
-      {!loading && error && (
+      {!isLoadingAny && error && (
         <div className="rounded-lg border border-red-500/40 bg-red-950/40 p-4 text-sm text-red-200">
           {error}
         </div>
       )}
 
-      {!loading && !error && (
+      {!isLoadingAny && !error && (
         <>
           {/* TOP ROW: SHIELD + STATS */}
           <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
@@ -285,9 +289,7 @@ export default function StaffDashboardPage() {
 
             {/* Stats card */}
             <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 p-5">
-              <h2 className="text-sm font-semibold text-slate-100">
-                Summary
-              </h2>
+              <h2 className="text-sm font-semibold text-slate-100">Summary</h2>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
@@ -362,7 +364,7 @@ export default function StaffDashboardPage() {
             )}
           </div>
 
-          {/* ORG STAFF MANAGEMENT (manager/admin) */}
+          {/* ORG STAFF MANAGEMENT (manager/admin/dev) */}
           {showManageStaff && (
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80">
               <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
@@ -407,7 +409,7 @@ export default function StaffDashboardPage() {
                   <div className="mt-2 md:mt-5">
                     <button
                       type="submit"
-                      disabled={addingStaff || !orgId}
+                      disabled={addingStaff || !organizationId}
                       className="w-full rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {addingStaff ? "Adding…" : "Add staff"}
@@ -459,7 +461,6 @@ export default function StaffDashboardPage() {
                                 {deletingId === s.id ? (
                                   <span className="text-[10px]">…</span>
                                 ) : (
-                                  // simple garbage can icon
                                   <span aria-hidden="true">🗑️</span>
                                 )}
                               </button>

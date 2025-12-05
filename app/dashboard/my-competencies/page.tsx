@@ -1,4 +1,4 @@
-// app/my-competencies/page.tsx
+// app/dashboard/my-competencies/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -100,7 +100,6 @@ export default function MyCompetenciesPage() {
         return;
       }
 
-      // 🔑 THIS is the important change: match staff by org_id + email
       const { data: staffRow, error: staffErr } = await supabase
         .from("staff_members")
         .select("id, full_name, email, org_id, facility_id")
@@ -138,7 +137,6 @@ export default function MyCompetenciesPage() {
       setLoading(true);
       setRows([]);
 
-      // All assignments for this staff within their org
       const { data: assignments, error: assignErr } = await supabase
         .from("competency_assignments")
         .select("id, competency_id, status, due_date, completed_at")
@@ -192,37 +190,49 @@ export default function MyCompetenciesPage() {
     loadAssignments();
   }, [staff]);
 
-  // 3) Derived progress metrics
+  // 3) Derived progress metrics (includes dueSoon)
   const progress = useMemo(() => {
     if (!rows.length) {
       return {
         total: 0,
         completed: 0,
         overdue: 0,
-        percent: 0,
+        dueSoon: 0,
       };
     }
 
-    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     let total = rows.length;
     let completed = 0;
     let overdue = 0;
+    let dueSoon = 0;
 
     for (const row of rows) {
-      if (row.assignment.status === "completed") {
+      const a = row.assignment;
+      if (a.status === "completed") {
         completed += 1;
-      } else if (
-        row.assignment.due_date &&
-        new Date(row.assignment.due_date) < now
-      ) {
-        overdue += 1;
+        continue;
+      }
+
+      if (a.due_date) {
+        const due = new Date(a.due_date);
+        due.setHours(0, 0, 0, 0);
+
+        const diffDays = Math.round(
+          (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        if (due < today) overdue += 1;
+        else if (diffDays >= 0 && diffDays <= 7) dueSoon += 1;
       }
     }
 
-    const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
-
-    return { total, completed, overdue, percent };
+    return { total, completed, overdue, dueSoon };
   }, [rows]);
+
+  const assignedActive = progress.total - progress.completed;
 
   // 4) Mark as complete
   async function handleMarkComplete(assignmentId: string) {
@@ -344,12 +354,12 @@ export default function MyCompetenciesPage() {
           </div>
         )}
 
-        {/* Summary cards */}
+        {/* Summary cards (now with Due Soon) */}
         {!error && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
               label="Assigned"
-              value={progress.total - progress.completed}
+              value={assignedActive}
               sub="Currently on your plate"
             />
             <SummaryCard
@@ -362,6 +372,12 @@ export default function MyCompetenciesPage() {
               value={progress.overdue}
               sub="Past due date"
               tone="danger"
+            />
+            <SummaryCard
+              label="Due soon"
+              value={progress.dueSoon}
+              sub="Within the next 7 days"
+              tone="warn"
             />
           </div>
         )}

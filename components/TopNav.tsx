@@ -1,11 +1,13 @@
+// components/TopNav.tsx
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { ThemeToggle } from "./ThemeToggle";
+import { useUserContext } from "@/hooks/useUserContext";
 
 type UserInfo = {
   email: string | null;
@@ -13,29 +15,29 @@ type UserInfo = {
 };
 
 export function TopNav() {
-  const pathname = usePathname();
   const router = useRouter();
 
   const [checking, setChecking] = useState(true);
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  // Org-aware context for dev badge + role
+  const { loading: ctxLoading, context } = useUserContext();
+  const org = context?.organization ?? null;
+  const isDevOrg = org?.isDevOrg ?? false;
 
   useEffect(() => {
     let mounted = true;
 
     async function load() {
       const { data } = await supabase.auth.getUser();
-
       if (!mounted) return;
 
       if (data.user) {
         const meta = (data.user.user_metadata || {}) as any;
-        const role =
-          meta.role ||
-          meta.user_role ||
-          "Manager";
+        const role = meta.role || meta.user_role || "Manager";
 
         setUserInfo({
-          email: data.user.email ?? null, // ✅ FIX
+          email: data.user.email ?? null,
           role,
         });
       } else {
@@ -52,13 +54,10 @@ export function TopNav() {
 
       if (session?.user) {
         const meta = (session.user.user_metadata || {}) as any;
-        const role =
-          meta.role ||
-          meta.user_role ||
-          "Manager";
+        const role = meta.role || meta.user_role || "Manager";
 
         setUserInfo({
-          email: session.user.email ?? null, // ✅ FIX
+          email: session.user.email ?? null,
           role,
         });
       } else {
@@ -74,11 +73,23 @@ export function TopNav() {
 
   const loggedIn = !!userInfo;
 
-  const roleLabel = userInfo?.role ?? "Manager";
+  // Prefer org.role when context is ready, fall back to auth metadata
+  const rawRole =
+    (!ctxLoading && org?.role) || userInfo?.role || "Manager";
+
+  const roleLabel =
+    rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
+
   const dashboardLabel =
     roleLabel.toLowerCase() === "admin"
       ? "Admin dashboard"
       : "Manager dashboard";
+
+  // route admins vs managers to different dashboards
+  const dashboardHref =
+    roleLabel.toLowerCase() === "admin"
+      ? "/dashboard/admin"
+      : "/dashboard/manager";
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -89,20 +100,29 @@ export function TopNav() {
   return (
     <header className="border-b border-slate-900 bg-slate-950/95 text-slate-100 backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        {/* BRAND */}
-        <Link href="/" className="flex items-center gap-2">
-          <Image
-            src="/logo-mark.png"
-            alt="CareCompetencyHub logo"
-            width={32}
-            height={32}
-            className="h-8 w-8 object-contain"
-            priority
-          />
-          <span className="text-lg font-semibold tracking-tight">
-            CareCompetencyHub
-          </span>
-        </Link>
+        {/* BRAND + DEV BADGE */}
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo-mark.png"
+              alt="CareCompetencyHub logo"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+              priority
+            />
+            <span className="text-lg font-semibold tracking-tight">
+              CareCompetencyHub
+            </span>
+          </Link>
+
+          {isDevOrg && (
+            <span className="hidden items-center gap-1 rounded-full border border-amber-400/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300 sm:inline-flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+              Dev mode
+            </span>
+          )}
+        </div>
 
         {/* NAV LINKS + INFO */}
         <div className="flex items-center gap-3 text-sm">
@@ -110,7 +130,7 @@ export function TopNav() {
 
           {loggedIn && (
             <Link
-              href="/dashboard"
+              href={dashboardHref}
               className="text-slate-200 hover:text-white hover:underline"
             >
               {dashboardLabel}

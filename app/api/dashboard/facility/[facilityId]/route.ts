@@ -1,69 +1,126 @@
+// app/api/policies/[policyId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabaseClient";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+// Helper: tiny validator to avoid obviously bad IDs
+function isUuid(value: string | undefined): value is string {
+  return !!value && /^[0-9a-fA-F-]{36}$/.test(value);
+}
 
-const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-  auth: { persistSession: false },
-});
-
+/**
+ * GET /api/policies/[policyId]
+ * Returns a single policy row.
+ */
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ facilityId: string }> }
+  context: { params: Promise<{ policyId: string }> }
 ) {
-  // 🔑 In Next 16, params is a Promise – unwrap it
-  const { facilityId } = await context.params;
+  const { policyId } = await context.params;
 
-  // basic UUID sanity check
-  if (!facilityId || !/^[0-9a-fA-F-]{36}$/.test(facilityId)) {
+  if (!isUuid(policyId)) {
     return NextResponse.json(
-      { error: "Invalid facilityId" },
+      { error: "Invalid policyId" },
       { status: 400 }
     );
   }
 
-  // 1) Facility snapshot (overall compliance / overdue / expiring soon)
-  const { data: snapshot, error: snapshotError } = await supabase
-    .from("facility_dashboard_snapshot")
+  const { data, error } = await supabase
+    .from("policies")
     .select("*")
-    .eq("facility_id", facilityId)
+    .eq("id", policyId)
     .single();
 
-  if (snapshotError && snapshotError.code !== "PGRST116") {
-    // PGRST116 = no rows found
-    console.error("Snapshot error:", snapshotError);
+  if (error) {
+    console.error("GET /api/policies/[policyId] error:", error);
     return NextResponse.json(
-      { error: "Failed to load facility snapshot" },
+      { error: "Failed to load policy" },
       { status: 500 }
     );
   }
 
-  // 2) High-risk competencies (top 5)
-  const { data: highRisk, error: highRiskError } = await supabase
-    .from("facility_high_risk_competencies")
-    .select(
-      "competency_id, competency_name, risk_level, staff_overdue, overdue_items"
-    )
-    .eq("facility_id", facilityId)
-    .order("risk_level", { ascending: false })
-    .order("staff_overdue", { ascending: false })
-    .limit(5);
+  return NextResponse.json({ policy: data }, { status: 200 });
+}
 
-  if (highRiskError) {
-    console.error("High-risk error:", highRiskError);
+/**
+ * PATCH /api/policies/[policyId]
+ * Updates fields on a policy. Body should be a partial policy object.
+ */
+export async function PATCH(
+  req: NextRequest,
+  context: { params: Promise<{ policyId: string }> }
+) {
+  const { policyId } = await context.params;
+
+  if (!isUuid(policyId)) {
     return NextResponse.json(
-      { error: "Failed to load high-risk competencies" },
+      { error: "Invalid policyId" },
+      { status: 400 }
+    );
+  }
+
+  let body: any;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 }
+    );
+  }
+
+  // Don’t allow client to change the primary key
+  delete body.id;
+
+  const { data, error } = await supabase
+    .from("policies")
+    .update({
+      ...body,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", policyId)
+    .select("*")
+    .single();
+
+  if (error) {
+    console.error("PATCH /api/policies/[policyId] error:", error);
+    return NextResponse.json(
+      { error: "Failed to update policy" },
       { status: 500 }
     );
   }
 
-  // Shape the response a bit for the frontend
-  const payload = {
-    facilityId,
-    snapshot: snapshot || null,
-    highRiskCompetencies: highRisk ?? [],
-  };
+  return NextResponse.json({ policy: data }, { status: 200 });
+}
 
-  return NextResponse.json(payload, { status: 200 });
+/**
+ * DELETE /api/policies/[policyId]
+ * Deletes a policy row.
+ */
+export async function DELETE(
+  _req: NextRequest,
+  context: { params: Promise<{ policyId: string }> }
+) {
+  const { policyId } = await context.params;
+
+  if (!isUuid(policyId)) {
+    return NextResponse.json(
+      { error: "Invalid policyId" },
+      { status: 400 }
+    );
+  }
+
+  const { error } = await supabase
+    .from("policies")
+    .delete()
+    .eq("id", policyId);
+
+  if (error) {
+    console.error("DELETE /api/policies/[policyId] error:", error);
+    return NextResponse.json(
+      { error: "Failed to delete policy" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ success: true }, { status: 200 });
 }

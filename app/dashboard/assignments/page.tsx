@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { useOrg } from "@/hooks/useOrg";
 
 type Status = "overdue" | "due_soon" | "on_track" | "completed";
 
@@ -120,56 +121,50 @@ function deriveStatus(row: DBAssignment): Status {
 export default function AssignmentsPage() {
   const router = useRouter();
 
+  const { loading: orgLoading, org, organizationId } = useOrg();
+  const userRole = org?.role ?? "staff";
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<Status | "all">("all");
   const [assignments, setAssignments] = useState<AssignmentCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load real assignments from Supabase
+  const canViewAssignments =
+    userRole === "dev" || userRole === "admin" || userRole === "manager";
+
+  // Load assignments for the org
   useEffect(() => {
     async function load() {
+      // wait for org context
+      if (orgLoading) return;
+
+      setLoading(true);
+      setError(null);
+
+      if (!organizationId) {
+        console.error("Assignments: no organizationId in context");
+        setError("Unable to load organization.");
+        setAssignments([]);
+        setLoading(false);
+        return;
+      }
+
+      if (!canViewAssignments) {
+        setError("You don’t have permission to view assignments.");
+        setAssignments([]);
+        setLoading(false);
+        return;
+      }
+
       try {
-        setLoading(true);
-        setError(null);
-
-        // 1) Auth
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError || !user) {
-          setError("You must be logged in to view assignments.");
-          setAssignments([]);
-          setLoading(false);
-          return;
-        }
-
-        // 2) Get org_id from profiles
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("org_id")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError || !profile?.org_id) {
-          console.error("Error loading profile / org_id:", profileError);
-          setError("Unable to load organization.");
-          setAssignments([]);
-          setLoading(false);
-          return;
-        }
-
-        const orgId = profile.org_id as string;
-
-        // 3) Load assignments for this org
+        // 1) Load assignments for this org
         const { data: rows, error: assignError } = await supabase
           .from("staff_competency_assignments")
           .select(
             "id, org_id, staff_id, competency_id, competency_title, competency_risk, due_date, status"
           )
-          .eq("org_id", orgId)
+          .eq("org_id", organizationId)
           .order("due_date", { ascending: true });
 
         if (assignError) {
@@ -189,7 +184,7 @@ export default function AssignmentsPage() {
           return;
         }
 
-        // 4) Load staff names for these assignments
+        // 2) Load staff names for these assignments
         const staffIds = Array.from(
           new Set(dbAssignments.map((a) => a.staff_id).filter(Boolean))
         );
@@ -211,7 +206,7 @@ export default function AssignmentsPage() {
           }
         }
 
-        // 5) Map DB rows -> UI cards
+        // 3) Map DB rows -> UI cards
         const mapped: AssignmentCard[] = dbAssignments.map((row) => {
           const staff = staffMap.get(row.staff_id);
 
@@ -219,9 +214,9 @@ export default function AssignmentsPage() {
             id: row.id,
             staffName: staff?.full_name || "Unknown staff",
             competencyTitle: row.competency_title || "Untitled competency",
-            facilityName: "Your organization", // can be updated once you link facilities
-            role: "", // can be populated from staff later
-            discipline: "", // same
+            facilityName: "Your organization", // TODO: hook up facilities later
+            role: "", // TODO: populate from staff later
+            discipline: "", // TODO: populate from staff later
             dueDate: row.due_date,
             status: deriveStatus(row),
             risk: normalizeRisk(row.competency_risk),
@@ -239,7 +234,7 @@ export default function AssignmentsPage() {
     }
 
     load();
-  }, []);
+  }, [orgLoading, organizationId, canViewAssignments]);
 
   const filteredAssignments = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -262,8 +257,10 @@ export default function AssignmentsPage() {
     });
   }, [search, statusFilter, assignments]);
 
+  const isLoadingAny = loading || orgLoading;
+
   return (
-    <div className="p-6">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] p-6">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -331,19 +328,19 @@ export default function AssignmentsPage() {
 
       {/* List */}
       <div className="mt-6 space-y-2">
-        {loading && (
+        {isLoadingAny && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
             Loading assignments…
           </div>
         )}
 
-        {!loading && error && (
+        {!isLoadingAny && error && (
           <div className="rounded-2xl border border-rose-500/40 bg-rose-950/40 p-6 text-sm text-rose-100">
             {error}
           </div>
         )}
 
-        {!loading && !error && filteredAssignments.length === 0 && (
+        {!isLoadingAny && !error && filteredAssignments.length === 0 && (
           <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-900/40 p-6 text-sm text-slate-400">
             <p className="font-medium text-slate-200">
               No assignments match your filters.
@@ -355,7 +352,7 @@ export default function AssignmentsPage() {
           </div>
         )}
 
-        {!loading &&
+        {!isLoadingAny &&
           !error &&
           filteredAssignments.map((a) => {
             const statusLabel = statusLabels[a.status];
@@ -377,8 +374,7 @@ export default function AssignmentsPage() {
                 : "bg-emerald-500/10 text-emerald-300 border-emerald-500/40";
 
             const dueLabel =
-              a.dueDate &&
-              !Number.isNaN(new Date(a.dueDate).getTime())
+              a.dueDate && !Number.isNaN(new Date(a.dueDate).getTime())
                 ? new Date(a.dueDate).toLocaleDateString(undefined, {
                     month: "short",
                     day: "numeric",

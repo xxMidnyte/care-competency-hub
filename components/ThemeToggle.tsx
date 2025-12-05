@@ -1,7 +1,7 @@
-// components/ThemeToggle.tsx
 "use client";
 
 import { useEffect, useState } from "react";
+import { Sun, Moon } from "lucide-react";
 
 type Theme = "light" | "dark";
 const STORAGE_KEY = "cch-theme";
@@ -10,14 +10,13 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
   const [mounted, setMounted] = useState(false);
 
-  // Helper to apply theme to <html>
   const applyTheme = (next: Theme) => {
     const root = document.documentElement;
 
-    // your CSS variables are driven by data-theme
+    // Keep your old behavior (CSS variables)
     root.dataset.theme = next;
 
-    // keep Tailwind's dark: variants in sync
+    // Keep Tailwind dark mode
     if (next === "dark") {
       root.classList.add("dark");
     } else {
@@ -27,13 +26,10 @@ export function ThemeToggle() {
     window.localStorage.setItem(STORAGE_KEY, next);
   };
 
-  // On mount: pick initial theme (saved → system preference → default)
+  // Initialize theme
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-
-    const prefersDark = window.matchMedia?.(
-      "(prefers-color-scheme: dark)"
-    ).matches;
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
     const initial: Theme =
       stored === "light" || stored === "dark"
@@ -48,18 +44,17 @@ export function ThemeToggle() {
   }, []);
 
   const toggleTheme = () => {
-    const next: Theme = theme === "dark" ? "light" : "dark";
+    const next = theme === "dark" ? "light" : "dark";
     applyTheme(next);
     setTheme(next);
   };
 
-  // Avoid hydration mismatch flash
   if (!mounted) {
     return (
       <button
         type="button"
         aria-label="Toggle theme"
-        className="h-8 w-8 rounded-full border border-slate-700/60 bg-black/10"
+        className="h-8 w-16 rounded-full border border-slate-700 bg-slate-900"
       />
     );
   }
@@ -69,11 +64,19 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label="Toggle theme"
-      className="flex items-center gap-1 rounded-full border border-slate-700/70 px-3 py-1.5 text-xs font-medium text-slate-200 hover:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+      className="relative flex h-8 w-16 items-center rounded-full border border-slate-700 bg-slate-900 px-1 transition-all"
     >
-      <span>{theme === "dark" ? "☀️" : "🌙"}</span>
-      <span className="hidden sm:inline">
-        {theme === "dark" ? "Light mode" : "Dark mode"}
+      <span
+        className={`absolute h-6 w-6 rounded-full bg-slate-100 shadow transition-transform ${
+          theme === "light" ? "translate-x-8" : "translate-x-0"
+        }`}
+      />
+
+      <span className="flex-1 flex justify-center">
+        <Moon className={`h-4 w-4 ${theme === "dark" ? "text-sky-200" : "text-slate-500"}`} />
+      </span>
+      <span className="flex-1 flex justify-center">
+        <Sun className={`h-4 w-4 ${theme === "light" ? "text-amber-300" : "text-slate-500"}`} />
       </span>
     </button>
   );
