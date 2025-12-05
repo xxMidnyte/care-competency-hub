@@ -10,17 +10,12 @@ function isUuid(value: string | undefined): value is string {
 /**
  * GET /api/dashboard/facility/[facilityId]
  * Returns a facility + related data for the manager dashboard.
- *
- * Adjust table names/fields if yours differ:
- * - "facilities"
- * - "staff_members"
- * - "competency_assignments"
  */
 export async function GET(
   _req: NextRequest,
-  { params }: { params: Promise<{ facilityId: string }> }
+  context: { params: Promise<{ facilityId: string }> }
 ) {
-  const { facilityId } = await params;
+  const { facilityId } = await context.params;
 
   if (!isUuid(facilityId)) {
     return NextResponse.json(
