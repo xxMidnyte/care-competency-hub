@@ -48,6 +48,9 @@ export default function MyCompetenciesPage() {
   const [staff, setStaff] = useState<StaffSelf | null>(null);
   const [rows, setRows] = useState<AssignmentRow[]>([]);
 
+  const userRole =
+    (org?.role as "admin" | "manager" | "staff" | string | null) ?? "staff";
+
   // Helper: flash message
   function flashMessage(
     type: "error" | "success",
@@ -133,15 +136,15 @@ export default function MyCompetenciesPage() {
   useEffect(() => {
     if (!staff) return;
 
-    async function loadAssignments() {
+    async function loadAssignments(currentStaff: StaffSelf) {
       setLoading(true);
       setRows([]);
 
       const { data: assignments, error: assignErr } = await supabase
         .from("competency_assignments")
         .select("id, competency_id, status, due_date, completed_at")
-        .eq("staff_id", staff.id)
-        .eq("org_id", staff.org_id)
+        .eq("staff_id", currentStaff.id)
+        .eq("org_id", currentStaff.org_id)
         .order("due_date", { ascending: true });
 
       if (assignErr) {
@@ -187,7 +190,8 @@ export default function MyCompetenciesPage() {
       setLoading(false);
     }
 
-    loadAssignments();
+    // Pass staff as an argument so TS knows it's non-null inside
+    loadAssignments(staff);
   }, [staff]);
 
   // 3) Derived progress metrics (includes dueSoon)
@@ -300,9 +304,6 @@ export default function MyCompetenciesPage() {
     );
   }
 
-  const userRole =
-    (org?.role as "admin" | "manager" | "staff" | string | null) ?? "staff";
-
   // ----- RENDER -----
 
   if (orgLoading || loading) {
@@ -332,10 +333,10 @@ export default function MyCompetenciesPage() {
 
           {staff && (
             <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-3 py-2 text-right text-[11px] text-slate-400">
-              <div className="font-medium text-[var(--foreground)]">
+              <div className="text-[var(--foreground)] font-medium">
                 {staff.full_name || staff.email || "Staff member"}
               </div>
-              <div className="uppercase tracking-[0.14em] text-[10px] text-slate-500">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
                 {userRole || "staff"}
               </div>
             </div>
@@ -354,7 +355,7 @@ export default function MyCompetenciesPage() {
           </div>
         )}
 
-        {/* Summary cards (now with Due Soon) */}
+        {/* Summary cards */}
         {!error && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard
@@ -406,15 +407,9 @@ export default function MyCompetenciesPage() {
               <table className="min-w-full text-sm">
                 <thead className="sticky top-0 bg-[var(--surface)] backdrop-blur">
                   <tr className="border-b border-slate-900/60 text-xs uppercase tracking-wide text-slate-400">
-                    <th className="px-4 py-2 text-left font-medium">
-                      Title
-                    </th>
-                    <th className="px-4 py-2 text-left font-medium">
-                      Risk
-                    </th>
-                    <th className="px-4 py-2 text-left font-medium">
-                      Status
-                    </th>
+                    <th className="px-4 py-2 text-left font-medium">Title</th>
+                    <th className="px-4 py-2 text-left font-medium">Risk</th>
+                    <th className="px-4 py-2 text-left font-medium">Status</th>
                     <th className="px-4 py-2 text-left font-medium">
                       Due date
                     </th>
