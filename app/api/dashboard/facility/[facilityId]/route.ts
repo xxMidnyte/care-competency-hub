@@ -1,126 +1,69 @@
-// app/api/policies/[policyId]/route.ts
+// app/api/dashboard/facility/[facilityId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabaseClient";
 
-// Helper: tiny validator to avoid obviously bad IDs
+// Tiny UUID validator
 function isUuid(value: string | undefined): value is string {
   return !!value && /^[0-9a-fA-F-]{36}$/.test(value);
 }
 
 /**
- * GET /api/policies/[policyId]
- * Returns a single policy row.
+ * GET /api/dashboard/facility/[facilityId]
+ * Returns facility info + staff list (you can expand with more stats later).
  */
 export async function GET(
   _req: NextRequest,
-  context: { params: Promise<{ policyId: string }> }
+  context: { params: Promise<{ facilityId: string }> }
 ) {
-  const { policyId } = await context.params;
+  const { facilityId } = await context.params;
 
-  if (!isUuid(policyId)) {
+  if (!isUuid(facilityId)) {
     return NextResponse.json(
-      { error: "Invalid policyId" },
+      { error: "Invalid facilityId" },
       { status: 400 }
     );
   }
 
-  const { data, error } = await supabase
-    .from("policies")
+  // 1) Facility row
+  const { data: facility, error: facilityErr } = await supabase
+    .from("facilities")
     .select("*")
-    .eq("id", policyId)
+    .eq("id", facilityId)
     .single();
 
-  if (error) {
-    console.error("GET /api/policies/[policyId] error:", error);
+  if (facilityErr) {
+    console.error(
+      "GET /api/dashboard/facility/[facilityId] facility error:",
+      facilityErr
+    );
     return NextResponse.json(
-      { error: "Failed to load policy" },
+      { error: "Failed to load facility" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ policy: data }, { status: 200 });
-}
+  // 2) Staff at this facility (lightweight fields)
+  const { data: staff, error: staffErr } = await supabase
+    .from("staff_members")
+    .select("id, full_name, email, org_id, facility_id")
+    .eq("facility_id", facilityId);
 
-/**
- * PATCH /api/policies/[policyId]
- * Updates fields on a policy. Body should be a partial policy object.
- */
-export async function PATCH(
-  req: NextRequest,
-  context: { params: Promise<{ policyId: string }> }
-) {
-  const { policyId } = await context.params;
-
-  if (!isUuid(policyId)) {
-    return NextResponse.json(
-      { error: "Invalid policyId" },
-      { status: 400 }
+  if (staffErr) {
+    console.error(
+      "GET /api/dashboard/facility/[facilityId] staff error:",
+      staffErr
     );
-  }
-
-  let body: any;
-  try {
-    body = await req.json();
-  } catch {
     return NextResponse.json(
-      { error: "Invalid JSON body" },
-      { status: 400 }
-    );
-  }
-
-  // Don’t allow client to change the primary key
-  delete body.id;
-
-  const { data, error } = await supabase
-    .from("policies")
-    .update({
-      ...body,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", policyId)
-    .select("*")
-    .single();
-
-  if (error) {
-    console.error("PATCH /api/policies/[policyId] error:", error);
-    return NextResponse.json(
-      { error: "Failed to update policy" },
+      { error: "Failed to load facility staff" },
       { status: 500 }
     );
   }
 
-  return NextResponse.json({ policy: data }, { status: 200 });
-}
-
-/**
- * DELETE /api/policies/[policyId]
- * Deletes a policy row.
- */
-export async function DELETE(
-  _req: NextRequest,
-  context: { params: Promise<{ policyId: string }> }
-) {
-  const { policyId } = await context.params;
-
-  if (!isUuid(policyId)) {
-    return NextResponse.json(
-      { error: "Invalid policyId" },
-      { status: 400 }
-    );
-  }
-
-  const { error } = await supabase
-    .from("policies")
-    .delete()
-    .eq("id", policyId);
-
-  if (error) {
-    console.error("DELETE /api/policies/[policyId] error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete policy" },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({ success: true }, { status: 200 });
+  return NextResponse.json(
+    {
+      facility,
+      staff: staff ?? [],
+    },
+    { status: 200 }
+  );
 }
