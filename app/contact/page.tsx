@@ -1,7 +1,10 @@
+// app/contact/page.tsx
 "use client";
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui/Button";
 
 type ContactFormState = {
   name: string;
@@ -11,6 +14,32 @@ type ContactFormState = {
   staffSize: string;
   reason: "demo" | "question";
   message: string;
+};
+
+const ui = {
+  page: "bg-background text-foreground",
+  wrap: "mx-auto max-w-6xl px-6 py-10",
+  grid: "grid gap-8 md:grid-cols-2",
+  kicker: "text-[11px] font-semibold uppercase tracking-[0.2em] text-primary",
+  h1: "mt-2 text-2xl font-semibold tracking-tight sm:text-3xl",
+  p: "mt-3 text-sm text-muted-foreground",
+  small: "text-xs text-muted-foreground",
+  list: "mt-2 space-y-1 text-xs text-muted-foreground",
+  cardPad: "p-6",
+  formTitle: "text-sm font-semibold text-foreground",
+  formHelp: "text-[11px] text-muted-foreground",
+  err: "rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] text-rose-100",
+  label: "mb-1 block text-[11px] font-medium text-muted-foreground",
+  input:
+    "w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  textarea:
+    "h-28 w-full rounded-md border border-border bg-background px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  btnPrimary:
+    "inline-flex w-full items-center justify-center rounded-full bg-primary px-4 py-3 text-[12px] font-semibold text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  pill:
+    "flex-1 rounded-xl border border-border bg-background px-3 py-2 text-[11px] font-semibold shadow-card transition hover:opacity-90",
+  pillOn: "border-primary bg-primary/10 text-primary",
+  pillOff: "text-foreground",
 };
 
 export default function ContactPage() {
@@ -56,274 +85,270 @@ export default function ContactPage() {
       }
 
       setSubmitted(true);
-      setSubmitting(false);
     } catch (err) {
       console.error(err);
       setError(
         "Something went wrong. Please try again, or email info@carecompetencyhub.com directly."
       );
+    } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50">
-      {/* Header (matches your layout / pricing header style) */}
-      <header className="w-full border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500 text-xs font-bold text-slate-950">
-              CCH
-            </span>
-            <span className="text-lg font-semibold tracking-tight">
-              CareCompetencyHub
-            </span>
-          </Link>
-          <nav className="flex items-center gap-5 text-xs">
-            <Link href="/blog" className="text-slate-300 hover:text-white">
-              Blog
-            </Link>
-            <Link href="/podcast" className="text-slate-300 hover:text-white">
-              Podcast
-            </Link>
-            <Link href="/pricing" className="text-slate-300 hover:text-white">
-              Pricing
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-full bg-emerald-500 px-4 py-2 text-[11px] font-semibold text-slate-950 shadow-sm hover:bg-emerald-400"
-            >
-              Login
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 md:flex-row">
-        {/* Left: intro / copy */}
-        <section className="md:w-1/2 md:pr-8">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-400">
-            Contact
-          </p>
-          <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
-            Talk with a nurse-led competency team.
-          </h1>
-          <p className="mt-3 text-sm text-slate-300">
-            Whether you&apos;re prepping for a survey, cleaning up a
-            spreadsheet, or building clinical ladders for your team, we&apos;d
-            love to show you how CareCompetencyHub can help.
-          </p>
-          <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-200">
-            <p className="font-semibold text-slate-50">
-              How we usually use this call:
+    <div className={ui.page}>
+      <div className={ui.wrap}>
+        <div className={ui.grid}>
+          {/* Left: intro */}
+          <section>
+            <p className={ui.kicker}>Contact</p>
+            <h1 className={ui.h1}>Talk with a nurse-led competency team.</h1>
+            <p className={ui.p}>
+              Whether you&apos;re prepping for a survey, cleaning up a spreadsheet,
+              or building clinical ladders for your team, we&apos;d love to show you
+              how CareCompetencyHub can help.
             </p>
-            <ul className="mt-2 space-y-1">
-              <li>• Review your current competency process</li>
-              <li>• Walk through a live CareCompetencyHub demo</li>
-              <li>• Map your roles / disciplines to our templates</li>
-              <li>• Answer questions about pricing, rollout, and adoption</li>
-            </ul>
-          </div>
-          <div className="mt-4 text-xs text-slate-400">
-            Prefer email?
-            <br />
-            <span className="font-mono text-slate-200">
-              info@carecompetencyhub.com
-            </span>
-          </div>
-        </section>
 
-        {/* Right: form */}
-        <section className="md:w-1/2">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-xl">
-            {submitted ? (
-              <div className="space-y-3 text-sm text-slate-200">
-                <h2 className="text-base font-semibold">
-                  Thanks — we&apos;ve received your message. ✅
-                </h2>
-                <p className="text-xs text-slate-400">
-                  We&apos;ll review your details and follow up at{" "}
-                  <span className="font-semibold text-slate-100">
-                    {form.email}
-                  </span>{" "}
-                  as soon as possible. If something&apos;s urgent, you can also
-                  email{" "}
-                  <span className="font-mono text-slate-100">
-                    info@carecompetencyhub.com
-                  </span>
-                  .
-                </p>
-                <button
-                  className="mt-2 inline-flex rounded-lg border border-slate-600 px-3 py-1.5 text-[11px] font-semibold text-slate-100 hover:bg-slate-800"
-                  onClick={() => {
-                    setSubmitted(false);
-                    setForm({
-                      name: "",
-                      email: "",
-                      organization: "",
-                      role: "",
-                      staffSize: "",
-                      reason: "demo",
-                      message: "",
-                    });
-                  }}
-                >
-                  Submit another request
-                </button>
+            <Card className="mt-5 p-5">
+              <p className="font-semibold text-foreground">
+                How we usually use this call:
+              </p>
+              <ul className={ui.list}>
+                <li>• Review your current competency process</li>
+                <li>• Walk through a live CareCompetencyHub demo</li>
+                <li>• Map your roles / disciplines to our templates</li>
+                <li>• Answer questions about pricing, rollout, and adoption</li>
+              </ul>
+            </Card>
+
+            <div className="mt-5 space-y-2">
+              <div className={ui.small}>
+                Prefer email?
+                <div className="mt-1 font-mono text-foreground">
+                  info@carecompetencyhub.com
+                </div>
               </div>
-            ) : (
-              <form className="space-y-4" onSubmit={handleSubmit}>
-                <h2 className="text-sm font-semibold text-slate-50">
-                  Tell us a little about your facility
-                </h2>
-                <p className="text-[11px] text-slate-400">
-                  We&apos;ll use this to tailor your demo and follow-up.
-                </p>
 
-                {error && (
-                  <p className="rounded-lg border border-red-500/60 bg-red-950/50 px-3 py-2 text-[11px] text-red-200">
-                    {error}
+              <div className="flex flex-wrap gap-2">
+                <ButtonLink href="/pricing" variant="secondary">
+                  View pricing
+                </ButtonLink>
+                <ButtonLink href="/login" variant="secondary">
+                  Login
+                </ButtonLink>
+              </div>
+            </div>
+          </section>
+
+          {/* Right: form */}
+          <section>
+            <Card className={ui.cardPad}>
+              {submitted ? (
+                <div className="space-y-3 text-sm">
+                  <h2 className="text-base font-semibold text-foreground">
+                    Thanks — we&apos;ve received your message. ✅
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    We&apos;ll follow up at{" "}
+                    <span className="font-semibold text-foreground">{form.email}</span>.
+                    If something&apos;s urgent, email{" "}
+                    <span className="font-mono text-foreground">
+                      info@carecompetencyhub.com
+                    </span>
+                    .
                   </p>
-                )}
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                      Your name *
-                    </label>
-                    <input
-                      type="text"
-                      value={form.name}
-                      onChange={(e) => handleChange("name", e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/60"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                      Work email *
-                    </label>
-                    <input
-                      type="email"
-                      value={form.email}
-                      onChange={(e) => handleChange("email", e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/60"
-                      required
-                    />
-                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex rounded-full border border-border bg-card px-4 py-2 text-[11px] font-semibold text-foreground shadow-sm transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background"
+                    onClick={() => {
+                      setSubmitted(false);
+                      setForm({
+                        name: "",
+                        email: "",
+                        organization: "",
+                        role: "",
+                        staffSize: "",
+                        reason: "demo",
+                        message: "",
+                      });
+                    }}
+                  >
+                    Submit another request
+                  </button>
                 </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                      Facility / organization *
-                    </label>
-                    <input
-                      type="text"
-                      value={form.organization}
-                      onChange={(e) =>
-                        handleChange("organization", e.target.value)
-                      }
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/60"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                      Your role / title
-                    </label>
-                    <input
-                      type="text"
-                      value={form.role}
-                      onChange={(e) => handleChange("role", e.target.value)}
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/60"
-                      placeholder="DON, Rehab Director, Administrator, etc."
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                      Approx. staff to track
-                    </label>
-                    <select
-                      value={form.staffSize}
-                      onChange={(e) =>
-                        handleChange("staffSize", e.target.value)
-                      }
-                      className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/60"
-                    >
-                      <option value="">Select an option</option>
-                      <option value="1-15">1–15</option>
-                      <option value="16-40">16–40</option>
-                      <option value="41-75">41–75</option>
-                      <option value="76-150">76–150</option>
-                      <option value="150+">150+</option>
-                    </select>
+              ) : (
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <div className="space-y-1">
+                    <h2 className={ui.formTitle}>
+                      Tell us a little about your facility
+                    </h2>
+                    <p className={ui.formHelp}>
+                      We&apos;ll use this to tailor your demo and follow-up.
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                      I&apos;m most interested in:
-                    </label>
-                    <div className="flex gap-3 text-[11px] text-slate-200">
-                      <button
-                        type="button"
-                        onClick={() => handleChange("reason", "demo")}
-                        className={`flex-1 rounded-lg border px-3 py-2 ${
-                          form.reason === "demo"
-                            ? "border-emerald-400 bg-emerald-500/10 text-emerald-200"
-                            : "border-slate-700 bg-slate-950 text-slate-200"
-                        }`}
-                      >
-                        A product demo
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleChange("reason", "question")}
-                        className={`flex-1 rounded-lg border px-3 py-2 ${
-                          form.reason === "question"
-                            ? "border-emerald-400 bg-emerald-500/10 text-emerald-200"
-                            : "border-slate-700 bg-slate-950 text-slate-200"
-                        }`}
-                      >
-                        General questions
-                      </button>
+                  {error && <p className={ui.err}>{error}</p>}
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className={ui.label} htmlFor="name">
+                        Your name *
+                      </label>
+                      <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        autoComplete="name"
+                        value={form.name}
+                        onChange={(e) => handleChange("name", e.target.value)}
+                        className={ui.input}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className={ui.label} htmlFor="email">
+                        Work email *
+                      </label>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        value={form.email}
+                        onChange={(e) => handleChange("email", e.target.value)}
+                        className={ui.input}
+                        required
+                      />
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="mb-1 block text-[11px] font-medium text-slate-300">
-                    How are you handling competencies today? *
-                  </label>
-                  <textarea
-                    value={form.message}
-                    onChange={(e) => handleChange("message", e.target.value)}
-                    className="h-28 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400/60"
-                    placeholder="Tell us about your current process, pain points, or what you'd like to improve."
-                    required
-                  />
-                </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className={ui.label} htmlFor="org">
+                        Facility / organization *
+                      </label>
+                      <input
+                        id="org"
+                        name="organization"
+                        type="text"
+                        autoComplete="organization"
+                        value={form.organization}
+                        onChange={(e) =>
+                          handleChange("organization", e.target.value)
+                        }
+                        className={ui.input}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className={ui.label} htmlFor="role">
+                        Your role / title
+                      </label>
+                      <input
+                        id="role"
+                        name="role"
+                        type="text"
+                        value={form.role}
+                        onChange={(e) => handleChange("role", e.target.value)}
+                        className={ui.input}
+                        placeholder="DON, Rehab Director, Administrator, etc."
+                      />
+                    </div>
+                  </div>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="inline-flex w-full items-center justify-center rounded-lg bg-emerald-500 px-4 py-2.5 text-[11px] font-semibold text-slate-950 shadow-sm hover:bg-emerald-400 disabled:opacity-60"
-                >
-                  {submitting ? "Sending..." : "Submit request"}
-                </button>
-                <p className="text-[10px] text-slate-500">
-                  By submitting this form you agree that we may contact you about
-                  CareCompetencyHub. We don&apos;t share your information with
-                  third parties.
-                </p>
-              </form>
-            )}
-          </div>
-        </section>
-      </main>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className={ui.label} htmlFor="staffSize">
+                        Approx. staff to track
+                      </label>
+                      <select
+                        id="staffSize"
+                        name="staffSize"
+                        value={form.staffSize}
+                        onChange={(e) =>
+                          handleChange("staffSize", e.target.value)
+                        }
+                        className={ui.input}
+                      >
+                        <option value="">Select an option</option>
+                        <option value="1-15">1–15</option>
+                        <option value="16-40">16–40</option>
+                        <option value="41-75">41–75</option>
+                        <option value="76-150">76–150</option>
+                        <option value="150+">150+</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className={ui.label}>I&apos;m most interested in:</label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleChange("reason", "demo")}
+                          className={[
+                            ui.pill,
+                            form.reason === "demo" ? ui.pillOn : ui.pillOff,
+                          ].join(" ")}
+                        >
+                          A product demo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleChange("reason", "question")}
+                          className={[
+                            ui.pill,
+                            form.reason === "question" ? ui.pillOn : ui.pillOff,
+                          ].join(" ")}
+                        >
+                          General questions
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={ui.label} htmlFor="message">
+                      How are you handling competencies today? *
+                    </label>
+                    <textarea
+                      id="message"
+                      name="message"
+                      value={form.message}
+                      onChange={(e) => handleChange("message", e.target.value)}
+                      className={ui.textarea}
+                      placeholder="Tell us about your current process, pain points, or what you'd like to improve."
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className={ui.btnPrimary}
+                  >
+                    {submitting ? "Sending…" : "Submit request"}
+                  </button>
+
+                  <p className="text-[10px] text-muted-foreground">
+                    By submitting this form you agree that we may contact you about
+                    CareCompetencyHub. We don&apos;t share your information with third
+                    parties.
+                  </p>
+
+                  <p className="text-[10px] text-muted-foreground">
+                    Back to{" "}
+                    <Link href="/" className="text-primary hover:opacity-90">
+                      home
+                    </Link>
+                    .
+                  </p>
+                </form>
+              )}
+            </Card>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

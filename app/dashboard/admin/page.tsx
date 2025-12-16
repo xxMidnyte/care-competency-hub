@@ -19,12 +19,40 @@ type StaffMemberRow = {
   email: string | null;
 };
 
+const ui = {
+  page: "min-h-screen bg-background text-foreground",
+  container: "mx-auto max-w-6xl px-6 py-6",
+  card: "rounded-2xl border border-border bg-card shadow-card",
+  cardSoft: "rounded-2xl border border-border bg-muted/30 shadow-card",
+  headerKicker:
+    "text-[11px] font-semibold uppercase tracking-[0.2em] text-primary",
+  h1: "text-2xl font-semibold tracking-tight text-foreground",
+  h2: "text-sm font-semibold text-foreground",
+  p: "text-sm text-muted-foreground",
+  pSmall: "text-xs text-muted-foreground",
+  label:
+    "text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground",
+  input:
+    "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent",
+  select:
+    "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent",
+  btnPrimary:
+    "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  btnSoft:
+    "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  btnSmallPrimary:
+    "inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  toastSuccess:
+    "rounded-2xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground",
+  toastError:
+    "rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-foreground",
+};
+
 function AdminDashboardInner() {
   const { loading, context } = useUserContext();
   const org = context?.organization ?? null;
   const orgId = org?.organizationId ?? null;
 
-  // Local feature flag state for toggles
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
   const [featureSavingKey, setFeatureSavingKey] = useState<string | null>(null);
   const [featureMessage, setFeatureMessage] = useState<string | null>(null);
@@ -41,7 +69,6 @@ function AdminDashboardInner() {
   async function handleToggleFeature(jsonKey: keyof FeatureFlags) {
     if (!org || !orgId) return;
 
-    // Dev org: visually everything is on and not editable
     if (org.isDevOrg) {
       setFeatureMessage(
         "Dev org sees all features as ON. Use a non-dev org to test feature-limited plans."
@@ -51,10 +78,7 @@ function AdminDashboardInner() {
 
     const prevFlags = featureFlags || {};
     const current = !!prevFlags[jsonKey];
-    const nextFlags: FeatureFlags = {
-      ...prevFlags,
-      [jsonKey]: !current,
-    };
+    const nextFlags: FeatureFlags = { ...prevFlags, [jsonKey]: !current };
 
     setFeatureFlags(nextFlags);
     setFeatureSavingKey(String(jsonKey));
@@ -68,7 +92,6 @@ function AdminDashboardInner() {
 
     if (error) {
       console.error("Admin feature toggle error:", error);
-      // revert
       setFeatureFlags(prevFlags);
       setFeatureError(
         error.message || "Failed to update feature flags. Please try again."
@@ -82,68 +105,57 @@ function AdminDashboardInner() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
-          Admin
-        </p>
-        <h1 className="text-2xl font-semibold">Admin dashboard</h1>
-        <p className="text-sm text-slate-400">Loading organization data…</p>
+      <div className="space-y-3">
+        <p className={ui.headerKicker}>Admin</p>
+        <h1 className={ui.h1}>Admin dashboard</h1>
+        <p className={ui.p}>Loading organization data…</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-300">
-          Admin
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <p className={ui.headerKicker}>Admin</p>
+        <h1 className={ui.h1}>
           {org?.organizationName
             ? `${org.organizationName} – Admin dashboard`
             : "Admin dashboard"}
         </h1>
-        <p className="max-w-xl text-sm text-slate-400">
-          Configure your organization, manage features, and get a high-level
-          view of what&apos;s turned on. Managers can still work from the main
-          dashboard and facility views.
+        <p className="max-w-xl text-sm text-muted-foreground">
+          Configure your organization, manage features, and get a high-level view
+          of what&apos;s turned on.
         </p>
       </div>
 
-      {/* Organization summary */}
+      {/* Org summary */}
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Organization
-          </p>
-          <p className="mt-1 text-base font-semibold">
+        <div className={`${ui.card} p-4`}>
+          <div className={ui.label}>Organization</div>
+          <div className="mt-2 text-lg font-semibold text-foreground">
             {org?.organizationName ?? "Unknown organization"}
-          </p>
-          <p className="mt-1 break-all text-xs text-slate-500">
+          </div>
+          <div className="mt-1 break-all text-xs text-muted-foreground">
             ID: {org?.organizationId ?? "n/a"}
-          </p>
+          </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Your role
-          </p>
-          <p className="mt-1 text-base font-semibold capitalize">
+        <div className={`${ui.card} p-4`}>
+          <div className={ui.label}>Your role</div>
+          <div className="mt-2 text-lg font-semibold capitalize text-foreground">
             {org?.role ?? "Unknown"}
-          </p>
+          </div>
           {org?.isDevOrg && (
-            <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-[11px] font-medium text-emerald-300">
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-foreground">
               Dev organization bypass active
-            </p>
+            </div>
           )}
         </div>
 
-        <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Quick actions
-          </p>
-          <ul className="mt-2 space-y-1 text-xs text-slate-400">
+        <div className={`${ui.card} p-4`}>
+          <div className={ui.label}>Quick actions</div>
+          <ul className="mt-3 space-y-1 text-sm text-foreground/80">
             <li>• Review enabled modules</li>
             <li>• Confirm manager access is correct</li>
             <li>• Use dev org to preview upcoming features</li>
@@ -151,113 +163,92 @@ function AdminDashboardInner() {
         </div>
       </section>
 
-      {/* Feature flags overview */}
+      {/* Feature flags */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Enabled features</h2>
-        <p className="max-w-xl text-xs text-slate-400">
-          These toggles are controlled at the organization level. Dev
-          organizations automatically see all features as enabled; customer orgs
-          can be configured here.
+        <h2 className={ui.h2}>Enabled features</h2>
+        <p className="max-w-xl text-xs text-muted-foreground">
+          These toggles are controlled at the organization level. Dev orgs see
+          everything enabled.
         </p>
 
         {org?.isDevOrg && (
-          <p className="text-xs text-amber-300">
-            Dev org: All features are forced <span className="font-semibold">ON</span> visually
-            across the app. Use a non-dev org to test locked plans.
-          </p>
-        )}
-
-        {featureError && (
-          <div className="rounded-md border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
-            {featureError}
+          <div className={`${ui.cardSoft} p-4 text-sm text-foreground/80`}>
+            Dev org: All features are forced <b>ON</b> visually. Use a non-dev org
+            to test locked plans.
           </div>
         )}
 
+        {featureError && <div className={ui.toastError}>{featureError}</div>}
         {featureMessage && (
-          <div className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
-            {featureMessage}
-          </div>
+          <div className={ui.toastSuccess}>{featureMessage}</div>
         )}
 
         <div className="grid gap-3 md:grid-cols-3">
           {Object.entries(FEATURE_LABELS).map(([jsonKey, label]) => {
             const enabled = org?.isDevOrg
               ? true
-              : !!(
-                  featureFlags &&
-                  featureFlags[jsonKey as keyof FeatureFlags]
-                );
+              : !!(featureFlags && featureFlags[jsonKey as keyof FeatureFlags]);
 
             const isSaving = featureSavingKey === String(jsonKey);
 
             return (
-              <div
-                key={jsonKey}
-                className="flex items-start justify-between rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-4 py-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="mt-1 text-xs text-slate-400">
-                    {enabled
-                      ? "Visible in the dashboard and facility views."
-                      : "Hidden for this organization in the current plan."}
-                  </p>
-                  {!org?.isDevOrg && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Toggle to grant or remove access at the org level.
-                    </p>
-                  )}
-                </div>
+              <div key={jsonKey} className={`${ui.card} p-4`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-semibold text-foreground">
+                      {label}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {enabled
+                        ? "Visible in the dashboard and facility views."
+                        : "Hidden for this organization in the current plan."}
+                    </div>
+                    {!org?.isDevOrg && (
+                      <div className="mt-1 text-[11px] text-muted-foreground">
+                        Toggle to grant or remove access at the org level.
+                      </div>
+                    )}
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleToggleFeature(jsonKey as keyof FeatureFlags)
-                  }
-                  disabled={org?.isDevOrg || isSaving}
-                  className={`relative ml-3 inline-flex h-6 w-11 items-center rounded-full border px-0.5 text-[11px] font-semibold transition ${
-                    enabled
-                      ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-200"
-                      : "border-slate-700 bg-[var(--surface)] text-slate-400"
-                  } ${
-                    org?.isDevOrg
-                      ? "cursor-not-allowed opacity-70"
-                      : "cursor-pointer"
-                  }`}
-                >
-                  <span
-                    className={`absolute left-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-[9px] text-slate-900 shadow transition-transform ${
-                      enabled ? "translate-x-4" : "translate-x-0"
-                    }`}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleToggleFeature(jsonKey as keyof FeatureFlags)
+                    }
+                    disabled={org?.isDevOrg || isSaving}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full border px-1 text-[11px] font-semibold transition focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background ${
+                      enabled
+                        ? "border-primary/40 bg-primary/15 text-foreground"
+                        : "border-border bg-background text-muted-foreground"
+                    } ${org?.isDevOrg ? "cursor-not-allowed opacity-70" : ""}`}
                   >
-                    {enabled ? "✓" : ""}
-                  </span>
-                  <span className="ml-auto mr-1">
-                    {isSaving ? "…" : enabled ? "On" : "Off"}
-                  </span>
-                </button>
+                    <span
+                      className={`absolute left-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-[9px] text-background shadow transition-transform ${
+                        enabled ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    >
+                      {enabled ? "✓" : ""}
+                    </span>
+                    <span className="ml-auto mr-1">
+                      {isSaving ? "…" : enabled ? "On" : "Off"}
+                    </span>
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* Staff account linking UI */}
       <StaffLinkManager orgId={orgId} />
 
-      {/* Placeholder for future admin tools */}
-      <section className="rounded-xl border border-dashed border-slate-700 bg-[var(--surface-soft)] p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-          Coming soon
-        </p>
-        <h2 className="mt-2 text-sm font-semibold">
+      <section className="rounded-2xl border border-dashed border-border bg-muted/20 p-4">
+        <div className={ui.label}>Coming soon</div>
+        <h2 className="mt-2 text-sm font-semibold text-foreground">
           Admin tools for multi-facility operators
         </h2>
-        <p className="mt-1 max-w-xl text-xs text-slate-400">
-          In the full release, this area will include cross-facility reporting,
-          bulk assignments, and subscription management. For now, managers and
-          admins can manage competencies and staff from the main dashboard and
-          facility pages.
+        <p className="mt-1 max-w-xl text-xs text-muted-foreground">
+          Cross-facility reporting, bulk assignments, and subscription management.
         </p>
       </section>
     </div>
@@ -269,19 +260,15 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
   const [rows, setRows] = useState<StaffMemberRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
-  const [editingEmails, setEditingEmails] = useState<Record<string, string>>(
-    {}
-  );
+  const [editingEmails, setEditingEmails] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [globalMessage, setGlobalMessage] = useState<string | null>(null);
 
-  // New-staff form state
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newFacilityId, setNewFacilityId] = useState<string>("");
   const [creating, setCreating] = useState(false);
 
-  // Facilities for this org
   type FacilityRow = { id: string; name: string | null };
   const [facilities, setFacilities] = useState<FacilityRow[]>([]);
   const [facilitiesError, setFacilitiesError] = useState<string | null>(null);
@@ -297,8 +284,8 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
       setLoading(true);
       setError(null);
       setGlobalMessage(null);
+      setFacilitiesError(null);
 
-      // 1) Load staff
       const { data, error: staffError } = await supabase
         .from("staff_members")
         .select("id, full_name, email")
@@ -316,12 +303,9 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
       setRows(staff);
 
       const initialEmails: Record<string, string> = {};
-      staff.forEach((s) => {
-        initialEmails[s.id] = s.email ?? "";
-      });
+      staff.forEach((s) => (initialEmails[s.id] = s.email ?? ""));
       setEditingEmails(initialEmails);
 
-      // 2) Load facilities
       const { data: facs, error: facError } = await supabase
         .from("facilities")
         .select("id, name")
@@ -332,10 +316,9 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
         console.error("Admin facilities load error:", facError);
         setFacilitiesError("Unable to load facilities.");
       } else {
-        setFacilities((facs || []) as FacilityRow[]);
-        if (facs && facs.length > 0) {
-          setNewFacilityId(facs[0].id);
-        }
+        const list = (facs || []) as FacilityRow[];
+        setFacilities(list);
+        if (list.length > 0) setNewFacilityId(list[0].id);
       }
 
       setLoading(false);
@@ -358,9 +341,7 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
 
     const email = (editingEmails[id] || "").trim();
     if (!email) {
-      setGlobalMessage(
-        "Email cannot be empty. Enter the login email for this staff member."
-      );
+      setGlobalMessage("Email cannot be empty.");
       return;
     }
 
@@ -374,20 +355,14 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
       .eq("org_id", orgId);
 
     if (updateError) {
-      console.error(
-        "Update staff email error:",
-        updateError,
-        updateError?.message
-      );
-      setGlobalMessage(
-        updateError.message || "Failed to update email. Please try again."
-      );
+      console.error("Update staff email error:", updateError);
+      setGlobalMessage(updateError.message || "Failed to update email.");
       setSavingId(null);
       return;
     }
 
     setGlobalMessage(
-      "Staff email updated. Make sure it matches the user’s login email so their dashboard links correctly."
+      "Staff email updated. Make sure it matches the user’s login email."
     );
     setSavingId(null);
   }
@@ -414,7 +389,7 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
       .from("staff_members")
       .insert({
         org_id: orgId,
-        facility_id: newFacilityId, // 👈 make sure facility is set
+        facility_id: newFacilityId,
         full_name: name || null,
         email,
       })
@@ -422,97 +397,73 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
       .single();
 
     if (insertError) {
-      console.error(
-        "Create staff error:",
-        insertError,
-        insertError?.message,
-        insertError?.details
-      );
-      setGlobalMessage(
-        insertError.message ||
-          "Failed to create staff profile. Please check Supabase constraints/RLS and try again."
-      );
+      console.error("Create staff error:", insertError);
+      setGlobalMessage(insertError.message || "Failed to create staff profile.");
       setCreating(false);
       return;
     }
 
     const newRow = data as StaffMemberRow;
 
-    setRows((prev) => {
-      const next = [...prev, newRow].sort((a, b) =>
+    setRows((prev) =>
+      [...prev, newRow].sort((a, b) =>
         (a.full_name || "").localeCompare(b.full_name || "")
-      );
-      return next;
-    });
+      )
+    );
 
-    setEditingEmails((prev) => ({
-      ...prev,
-      [newRow.id]: newRow.email ?? "",
-    }));
+    setEditingEmails((prev) => ({ ...prev, [newRow.id]: newRow.email ?? "" }));
 
     setNewName("");
     setNewEmail("");
     setCreating(false);
-    setGlobalMessage(
-      "Staff profile created. If this email matches a login account, their My dashboard will now be linked."
-    );
+    setGlobalMessage("Staff profile created.");
   }
 
   return (
     <section className="space-y-3">
-      <h2 className="text-sm font-semibold">Staff account links</h2>
-      <p className="max-w-xl text-xs text-slate-400">
-        Use this to link staff profiles to the login accounts used for{" "}
-        <span className="font-medium">My dashboard</span>. The{" "}
-        <code className="rounded bg-[var(--surface)] px-1 py-0.5 text-[10px]">
-          staff_members.email
-        </code>{" "}
-        must match the user&apos;s auth email for their assignments to appear.
+      <h2 className={ui.h2}>Staff account links</h2>
+      <p className="max-w-xl text-xs text-muted-foreground">
+        <span className="font-semibold text-foreground">staff_members.email</span>{" "}
+        must match the auth email for the user’s assignments to show up in My
+        dashboard.
       </p>
 
-      {/* Create new staff profile */}
-      <div className="space-y-3 rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-4 py-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-          Add staff profile
-        </p>
+      {/* Create */}
+      <div className={`${ui.card} p-4 space-y-3`}>
+        <div className={ui.label}>Add staff profile</div>
         {facilitiesError && (
-          <p className="text-xs text-rose-300">{facilitiesError}</p>
+          <div className="text-sm text-foreground/80">{facilitiesError}</div>
         )}
-        <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1.2fr),minmax(0,1.4fr),minmax(0,1.2fr),auto]">
+
+        <div className="grid items-end gap-3 md:grid-cols-[1.1fr_1.3fr_1fr_auto]">
           <div className="space-y-1">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-              Full name (optional)
-            </label>
+            <label className={ui.label}>Full name</label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="e.g. Shane Rakke"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={ui.input}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-              Login email
-            </label>
+            <label className={ui.label}>Login email</label>
             <input
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
               placeholder="user@example.com"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={ui.input}
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-medium uppercase tracking-wide text-slate-400">
-              Facility
-            </label>
+            <label className={ui.label}>Facility</label>
             <select
               value={newFacilityId}
               onChange={(e) => setNewFacilityId(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={ui.select}
             >
               {facilities.length === 0 ? (
                 <option value="">No facilities</option>
@@ -530,80 +481,81 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
             type="button"
             onClick={handleCreateStaff}
             disabled={creating || !orgId}
-            className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-xs font-medium text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className={ui.btnSmallPrimary}
           >
             {creating ? "Creating…" : "Add staff"}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-800 px-4 py-3">
-          <div className="space-y-0.5">
-            <p className="text-sm font-medium">Staff for this organization</p>
-            <p className="text-xs text-slate-400">
-              {rows.length} staff profile{rows.length === 1 ? "" : "s"}. Update
-              the email to match the login account.
-            </p>
+      {/* List */}
+      <div className={ui.card}>
+        <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Staff for this organization
+            </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {rows.length} staff profile{rows.length === 1 ? "" : "s"}.
+            </div>
           </div>
-          <div className="w-full max-w-xs">
+          <div className="w-full max-w-xs space-y-1">
+            <label className={ui.label}>Filter</label>
             <input
               type="text"
-              placeholder="Filter by name or email…"
+              placeholder="Name or email…"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 outline-none shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+              className={ui.input}
             />
           </div>
         </div>
 
         {loading ? (
-          <div className="px-4 py-6 text-sm text-slate-400">Loading staff…</div>
+          <div className="p-4 text-sm text-muted-foreground">Loading staff…</div>
         ) : error ? (
-          <div className="px-4 py-6 text-sm text-rose-200">{error}</div>
+          <div className="p-4 text-sm text-foreground/80">{error}</div>
         ) : rows.length === 0 ? (
-          <div className="px-4 py-6 text-sm text-slate-400">
+          <div className="p-4 text-sm text-muted-foreground">
             No staff members found for this organization yet.
           </div>
         ) : (
           <>
             {globalMessage && (
-              <div className="mx-4 mt-3 rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-200">
+              <div className="px-4 pt-4 text-sm text-foreground/80">
                 {globalMessage}
               </div>
             )}
-            <div className="mt-2 max-h-[360px] overflow-auto">
+            <div className="max-h-[420px] overflow-auto">
               <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-[var(--surface)] backdrop-blur">
-                  <tr className="border-b border-slate-800 text-xs uppercase tracking-wide text-slate-400">
-                    <th className="px-4 py-2 text-left font-medium">
+                <thead className="sticky top-0 bg-card/95 backdrop-blur">
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-muted-foreground">
+                    <th className="px-4 py-2 text-left font-semibold">
                       Staff member
                     </th>
-                    <th className="px-4 py-2 text-left font-medium">
-                      Linked email (auth user)
+                    <th className="px-4 py-2 text-left font-semibold">
+                      Linked email
                     </th>
-                    <th className="px-4 py-2 text-right font-medium">
+                    <th className="px-4 py-2 text-right font-semibold">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border">
                   {filteredRows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className="border-b border-slate-900/60 align-top"
-                    >
-                      <td className="px-4 py-3 text-xs text-slate-200">
-                        <div className="font-medium text-[var(--foreground)]">
+                    <tr key={row.id} className="hover:bg-muted/40">
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-semibold text-foreground">
                           {row.full_name || "(No name set)"}
                         </div>
                         {row.email && (
-                          <div className="mt-0.5 text-[11px] text-slate-500">
+                          <div className="mt-1 text-xs text-muted-foreground">
                             Current: {row.email}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs">
+
+                      <td className="px-4 py-3 align-top">
                         <input
                           type="email"
                           value={editingEmails[row.id] ?? ""}
@@ -614,26 +566,28 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
                             }))
                           }
                           placeholder="user@example.com"
-                          className="w-full rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-900 outline-none shadow-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                          className={ui.input}
                         />
                       </td>
-                      <td className="px-4 py-3 text-right text-xs">
+
+                      <td className="px-4 py-3 align-top text-right">
                         <button
                           type="button"
                           onClick={() => handleSaveEmail(row.id)}
                           disabled={savingId === row.id}
-                          className="inline-flex items-center rounded-md bg-emerald-500 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                          className={ui.btnSmallPrimary}
                         >
                           {savingId === row.id ? "Saving…" : "Save link"}
                         </button>
                       </td>
                     </tr>
                   ))}
+
                   {filteredRows.length === 0 && (
                     <tr>
                       <td
                         colSpan={3}
-                        className="px-4 py-4 text-xs text-slate-400"
+                        className="px-4 py-4 text-sm text-muted-foreground"
                       >
                         No staff match this filter.
                       </td>
@@ -652,8 +606,8 @@ function StaffLinkManager({ orgId }: { orgId: string | null }) {
 export default function AdminDashboardPage() {
   return (
     <RequireRole minRole="admin" redirectTo="/dashboard">
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className={ui.page}>
+        <div className={ui.container}>
           <AdminDashboardInner />
         </div>
       </div>

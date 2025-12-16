@@ -64,6 +64,28 @@ const SECTION_LABEL_MAP: Record<string, string> = SECTION_OPTIONS.reduce(
 );
 
 // ------------------------------
+// Shared styles
+// ------------------------------
+const card = "rounded-2xl border border-border bg-card shadow-card";
+const subcard = "rounded-2xl border border-border bg-card-2";
+const label =
+  "text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground";
+const helper = "text-[11px] text-muted-foreground";
+const input =
+  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const textarea =
+  "w-full resize-none rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const pillBase =
+  "rounded-full border px-3 py-1 text-xs transition focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const primaryBtn =
+  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const primaryBtnWide = "w-full " + primaryBtn;
+const secondaryBtn =
+  "inline-flex items-center justify-center rounded-full border border-border bg-card px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-foreground shadow-sm transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const accentBtn =
+  "inline-flex items-center justify-center rounded-full bg-primary px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+
+// ------------------------------
 // Main Component
 // ------------------------------
 export default function AIGeneratorPage() {
@@ -195,7 +217,7 @@ export default function AIGeneratorPage() {
 
       const cleaned = Object.fromEntries(
         Object.entries((data.sections ?? {}) as Record<string, unknown>).filter(
-          ([, v]) => typeof v === "string" && v.trim().length > 0
+          ([, v]) => typeof v === "string" && (v as string).trim().length > 0
         )
       ) as GeneratedContent;
 
@@ -238,8 +260,6 @@ export default function AIGeneratorPage() {
       org_id: organizationId,
     };
 
-    console.log("💾 Save payload:", payload);
-
     setIsSaving(true);
     try {
       const res = await fetch("/api/competencies", {
@@ -258,18 +278,14 @@ export default function AIGeneratorPage() {
         return;
       }
 
-      console.log("✅ Saved competency:", data);
       setSaveMessage("Competency saved successfully.");
 
-      // Try to grab the new competency id from a few likely shapes
       const newId: string | null =
         (data && (data.id as string)) ||
         (data && data.competency && (data.competency.id as string)) ||
         null;
 
-      if (newId) {
-        setSavedCompetencyId(newId);
-      }
+      if (newId) setSavedCompetencyId(newId);
     } catch (err) {
       console.error("Save network error:", err);
       setSaveError("Network error saving competency.");
@@ -284,39 +300,52 @@ export default function AIGeneratorPage() {
   const stillLoading = orgLoading || !authChecked;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto max-w-6xl px-4 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          AI Competency Builder
-        </h1>
-        <p className="mt-1 text-sm text-slate-400">
-          Generate complete competencies, checklists, and quizzes in any
-          language – then tweak them inline before saving.
-        </p>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-6xl space-y-6 px-6 py-6">
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            Builder
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            AI Competency Builder
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Generate complete competencies, checklists, and quizzes in any
+            language — then tweak them inline before saving.
+          </p>
+        </div>
 
         {stillLoading ? (
-          <div className="mt-6 px-6 py-8 text-sm text-slate-400">Loading…</div>
+          <div className="rounded-2xl border border-border bg-card shadow-card px-4 py-6 text-sm text-muted-foreground">
+            Loading…
+          </div>
         ) : !organizationId ? (
-          <div className="mt-6 rounded-xl border border-red-500/40 bg-red-950/60 px-4 py-6 text-sm text-red-100">
-            Organization context could not be loaded. Please refresh the page or
-            contact support if this continues.
+          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-6 text-sm text-foreground">
+            <p className="font-semibold text-red-500">
+              Organization context could not be loaded.
+            </p>
+            <p className="mt-1 text-foreground/80">
+              Please refresh the page or contact support if this continues.
+            </p>
           </div>
         ) : !isManagerOrAdmin ? (
-          <div className="mt-6 rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-4 py-6 text-sm text-slate-300">
-            You don&apos;t have permission to use the AI competency builder.
-            Please contact your administrator if you think this is a mistake.
+          <div className={`${card} px-4 py-6 text-sm`}>
+            <p className="font-semibold text-foreground">
+              You don&apos;t have permission to use the AI competency builder.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Please contact your administrator if you think this is a mistake.
+            </p>
           </div>
         ) : (
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {/* LEFT - Builder Form */}
-            <div className="space-y-5 rounded-2xl border border-slate-800 bg-[var(--surface-soft)] p-5">
+            <div className={`space-y-5 p-4 ${card}`}>
               {/* Title */}
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase text-slate-400">
-                  Title
-                </label>
+                <label className={label}>Title</label>
                 <input
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none shadow-sm transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={input}
                   placeholder="e.g. Wound Care: Pressure Ulcer Staging"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -325,11 +354,9 @@ export default function AIGeneratorPage() {
 
               {/* Description */}
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase text-slate-400">
-                  Description (optional)
-                </label>
+                <label className={label}>Description (optional)</label>
                 <textarea
-                  className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none shadow-sm transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={textarea}
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -338,90 +365,89 @@ export default function AIGeneratorPage() {
 
               {/* Roles */}
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase text-slate-400">
-                  Roles
-                </label>
+                <label className={label}>Roles</label>
                 <div className="flex flex-wrap gap-2">
-                  {ROLE_OPTIONS.map((roleOpt) => (
-                    <button
-                      key={roleOpt}
-                      type="button"
-                      onClick={() => toggleRole(roleOpt)}
-                      className={`rounded-full border px-3 py-1 text-xs transition ${
-                        selectedRoles.includes(roleOpt)
-                          ? "border-emerald-500 bg-emerald-500 text-slate-950"
-                          : "border-slate-700 text-slate-300 hover:border-emerald-400 hover:text-emerald-200"
-                      }`}
-                    >
-                      {roleOpt}
-                    </button>
-                  ))}
+                  {ROLE_OPTIONS.map((roleOpt) => {
+                    const active = selectedRoles.includes(roleOpt);
+                    return (
+                      <button
+                        key={roleOpt}
+                        type="button"
+                        onClick={() => toggleRole(roleOpt)}
+                        className={`${pillBase} ${
+                          active
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-card text-foreground hover:bg-muted"
+                        }`}
+                      >
+                        {roleOpt}
+                      </button>
+                    );
+                  })}
                 </div>
                 {selectedRoles.length === 0 && (
-                  <p className="text-[11px] text-rose-400">
+                  <p className="text-[11px] text-red-500">
                     Select at least one role to generate content.
                   </p>
                 )}
               </div>
 
               {/* Setting + Risk */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {/* Setting */}
                 <div className="space-y-1">
-                  <label className="text-xs font-medium uppercase text-slate-400">
-                    Setting
-                  </label>
+                  <label className={label}>Setting</label>
                   <div className="flex flex-wrap gap-2">
-                    {SETTING_OPTIONS.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() =>
-                          setSetting((prev) => (prev === s ? null : s))
-                        }
-                        className={`rounded-full border px-3 py-1 text-xs transition ${
-                          setting === s
-                            ? "border-sky-500 bg-sky-500 text-slate-950"
-                            : "border-slate-700 text-slate-300 hover:border-sky-400 hover:text-sky-100"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
+                    {SETTING_OPTIONS.map((s) => {
+                      const active = setting === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setSetting((prev) => (prev === s ? null : s))}
+                          className={`${pillBase} ${
+                            active
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border bg-card text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
                 {/* Risk */}
                 <div className="space-y-1">
-                  <label className="text-xs font-medium uppercase text-slate-400">
-                    Risk level
-                  </label>
+                  <label className={label}>Risk level</label>
                   <div className="flex flex-wrap gap-2">
-                    {RISK_OPTIONS.map((r) => (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => setRisk(r)}
-                        className={`rounded-full border px-3 py-1 text-xs transition ${
-                          risk === r
-                            ? "border-amber-400 bg-amber-400 text-slate-950"
-                            : "border-slate-700 text-slate-300 hover:border-amber-300 hover:text-amber-100"
-                        }`}
-                      >
-                        {r}
-                      </button>
-                    ))}
+                    {RISK_OPTIONS.map((r) => {
+                      const active = risk === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => setRisk(r)}
+                          className={`${pillBase} ${
+                            active
+                              ? "border-primary/40 bg-primary/10 text-primary"
+                              : "border-border bg-card text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
               {/* Language */}
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase text-slate-400">
-                  Language
-                </label>
+                <label className={label}>Language</label>
                 <select
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none shadow-sm transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={input}
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
                 >
@@ -433,38 +459,32 @@ export default function AIGeneratorPage() {
                 </select>
               </div>
 
-              {/* Sections (excluding purpose which is always present) */}
+              {/* Sections */}
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase text-slate-400">
-                  Sections
-                </label>
+                <label className={label}>Sections</label>
                 <div className="flex flex-wrap gap-2">
-                  {SECTION_OPTIONS.filter((s) => s.key !== "purpose").map(
-                    (s) => (
-                      <label
-                        key={s.key}
-                        className="flex items-center gap-1 rounded-full border border-slate-700 bg-[var(--surface)] px-2 py-1 text-[11px] hover:border-emerald-500/70"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedSections.includes(s.key)}
-                          onChange={() => toggleSection(s.key)}
-                          className="h-3 w-3 rounded border-slate-600 bg-transparent"
-                        />
-                        {s.label}
-                      </label>
-                    )
-                  )}
+                  {SECTION_OPTIONS.filter((s) => s.key !== "purpose").map((s) => (
+                    <label
+                      key={s.key}
+                      className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] text-foreground hover:bg-muted"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSections.includes(s.key)}
+                        onChange={() => toggleSection(s.key)}
+                        className="h-3 w-3 accent-[color:var(--color-primary)]"
+                      />
+                      {s.label}
+                    </label>
+                  ))}
                 </div>
               </div>
 
               {/* Special Instructions */}
               <div className="space-y-1">
-                <label className="text-xs font-medium uppercase text-slate-400">
-                  Special Instructions (optional)
-                </label>
+                <label className={label}>Special Instructions (optional)</label>
                 <textarea
-                  className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none shadow-sm transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  className={textarea}
                   rows={3}
                   placeholder='e.g. "Focus heavily on infection control and update for 2025 CMS changes. Keep language simple for CNAs."'
                   value={specialInstructions}
@@ -476,28 +496,30 @@ export default function AIGeneratorPage() {
               <button
                 onClick={handleGenerate}
                 disabled={!canGenerate || isGenerating}
-                className="w-full rounded-md bg-emerald-500 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                className={primaryBtnWide}
               >
                 {isGenerating ? "Generating..." : "✨ Generate with AI"}
               </button>
             </div>
 
             {/* RIGHT - Preview with inline editing + Save */}
-            <div className="flex flex-col rounded-2xl border border-slate-800 bg-[var(--surface-soft)] p-5">
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-300">
+            <div className={`flex flex-col p-4 ${card}`}>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-sm font-semibold tracking-tight text-foreground">
                     Preview
                   </h2>
-                  <p className="text-[11px] text-slate-500">
-                    Click ✏️ to tweak any section, then save it as a reusable
+                  <p className={helper}>
+                    Click Edit to tweak any section, then save it as a reusable
                     competency.
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="hidden rounded-full bg-slate-800 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-amber-300 sm:inline-block">
-                    Risk: {risk}
+
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <span className="hidden sm:inline-flex rounded-full border border-border bg-muted px-3 py-1 text-[11px] font-medium text-foreground/80">
+                    Risk: <span className="ml-1 text-foreground">{risk}</span>
                   </span>
+
                   {savedCompetencyId && (
                     <button
                       type="button"
@@ -506,16 +528,17 @@ export default function AIGeneratorPage() {
                           `/dashboard/library?highlight=${savedCompetencyId}`
                         )
                       }
-                      className="rounded-full border border-slate-700 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-200 hover:border-emerald-400 hover:text-emerald-200"
+                      className={secondaryBtn}
                     >
                       View in library
                     </button>
                   )}
+
                   <button
                     type="button"
                     onClick={handleSave}
                     disabled={isSaving || !hasPreview || !organizationId}
-                    className="rounded-full bg-sky-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-950 hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={accentBtn}
                   >
                     {isSaving ? "Saving…" : "Save competency"}
                   </button>
@@ -523,27 +546,28 @@ export default function AIGeneratorPage() {
               </div>
 
               {saveMessage && (
-                <div className="mb-2 rounded-lg border border-emerald-500/60 bg-emerald-500/10 px-3 py-1.5 text-[11px] text-emerald-200">
+                <div className="mb-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-[11px] text-foreground">
                   {saveMessage}
                 </div>
               )}
 
               {saveError && (
-                <div className="mb-2 rounded-lg border border-rose-500/60 bg-rose-500/10 px-3 py-1.5 text-[11px] text-rose-200">
+                <div className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-foreground">
+                  <span className="font-semibold text-red-500">Error:</span>{" "}
                   {saveError}
                 </div>
               )}
 
-              <div className="h-[80vh] overflow-auto rounded-xl border border-slate-800 bg-[var(--surface)] p-4 text-sm">
+              <div className="h-[80vh] overflow-auto rounded-2xl border border-border bg-background p-4 text-sm">
                 {!hasPreview && !isGenerating && (
-                  <div className="flex h-full flex-col items-center justify-center text-center text-xs text-slate-500">
-                    <div className="mb-3 h-10 w-10 rounded-full border border-dashed border-slate-700" />
-                    <p className="font-medium text-slate-300">
+                  <div className="flex h-full flex-col items-center justify-center text-center text-xs text-muted-foreground">
+                    <div className="mb-3 h-10 w-10 rounded-full border border-dashed border-border" />
+                    <p className="font-medium text-foreground">
                       No competency generated yet
                     </p>
                     <p className="mt-1">
                       Fill out the form and click{" "}
-                      <span className="font-semibold text-emerald-400">
+                      <span className="font-semibold text-primary">
                         Generate with AI
                       </span>{" "}
                       to see a preview.
@@ -552,52 +576,52 @@ export default function AIGeneratorPage() {
                 )}
 
                 {isGenerating && (
-                  <div className="space-y-3 text-xs text-slate-500">
-                    <div className="h-4 w-2/3 rounded bg-slate-800" />
+                  <div className="space-y-3 text-xs text-muted-foreground">
+                    <div className="h-4 w-2/3 rounded bg-muted" />
                     <div className="flex gap-2">
-                      <div className="h-4 w-16 rounded-full bg-slate-800" />
-                      <div className="h-4 w-20 rounded-full bg-slate-800" />
-                      <div className="h-4 w-14 rounded-full bg-slate-800" />
+                      <div className="h-4 w-16 rounded-full bg-muted" />
+                      <div className="h-4 w-20 rounded-full bg-muted" />
+                      <div className="h-4 w-14 rounded-full bg-muted" />
                     </div>
-                    <div className="h-3 w-full rounded bg-slate-800" />
-                    <div className="h-3 w-5/6 rounded bg-slate-800" />
-                    <div className="h-3 w-4/5 rounded bg-slate-800" />
+                    <div className="h-3 w-full rounded bg-muted" />
+                    <div className="h-3 w-5/6 rounded bg-muted" />
+                    <div className="h-3 w-4/5 rounded bg-muted" />
                   </div>
                 )}
 
                 {hasPreview && !isGenerating && (
                   <div className="space-y-5">
                     {/* Title + tags */}
-                    <div className="border-b border-slate-800 pb-3">
-                      <h2 className="text-base font-semibold">
+                    <div className="border-b border-border pb-3">
+                      <h2 className="text-base font-semibold text-foreground">
                         {title || "Untitled competency"}
                       </h2>
                       {description && (
-                        <p className="mt-1 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {description}
                         </p>
                       )}
+
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {selectedRoles.map((r) => (
                           <span
                             key={r}
-                            className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-slate-200"
+                            className="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-foreground/80"
                           >
                             {r}
                           </span>
                         ))}
+
                         {setting && (
-                          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-300">
+                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
                             {setting}
                           </span>
                         )}
+
                         {language && (
-                          <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] uppercase tracking-wide text-emerald-300">
-                            {
-                              LANGUAGE_OPTIONS.find(
-                                (l) => l.value === language
-                              )?.label
-                            }
+                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
+                            {LANGUAGE_OPTIONS.find((l) => l.value === language)
+                              ?.label ?? language}
                           </span>
                         )}
                       </div>
@@ -607,52 +631,49 @@ export default function AIGeneratorPage() {
                     {Object.entries(generated).map(([sectionKey, content]) => {
                       if (!content || !String(content).trim()) return null;
 
-                      const label =
+                      const labelText =
                         SECTION_LABEL_MAP[sectionKey] ??
-                        sectionKey.charAt(0).toUpperCase() +
-                          sectionKey.slice(1);
+                        sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1);
 
                       const isEditing = editingKey === sectionKey;
 
                       return (
                         <div
                           key={sectionKey}
-                          className="border-b border-slate-800 pb-4 last:border-b-0"
+                          className="border-b border-border pb-4 last:border-b-0"
                         >
-                          <div className="mb-1 flex items-center justify-between">
-                            <h3 className="text-xs uppercase tracking-wide text-slate-400">
-                              {label}
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <h3 className="text-xs uppercase tracking-wide text-muted-foreground">
+                              {labelText}
                             </h3>
+
                             <div className="flex gap-2">
                               {isEditing ? (
                                 <>
                                   <button
                                     type="button"
                                     onClick={saveEdit}
-                                    className="rounded-full bg-emerald-500/90 px-2 py-0.5 text-[10px] font-medium text-slate-950 hover:bg-emerald-400"
+                                    className="rounded-full bg-primary px-2 py-1 text-[10px] font-medium text-primary-foreground shadow-sm transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background"
                                   >
-                                    ✅ Save
+                                    Save
                                   </button>
                                   <button
                                     type="button"
                                     onClick={cancelEdit}
-                                    className="rounded-full border border-slate-600 px-2 py-0.5 text-[10px] text-slate-300 hover:border-rose-400 hover:text-rose-300"
+                                    className="rounded-full border border-border bg-card px-2 py-1 text-[10px] text-foreground/80 transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background"
                                   >
-                                    ✕ Cancel
+                                    Cancel
                                   </button>
                                 </>
                               ) : (
                                 <button
                                   type="button"
                                   onClick={() =>
-                                    startEdit(
-                                      sectionKey,
-                                      content as string | null
-                                    )
+                                    startEdit(sectionKey, content as string | null)
                                   }
-                                  className="rounded-full border border-slate-700 px-2 py-0.5 text-[10px] text-slate-300 hover:border-emerald-500 hover:text-emerald-300"
+                                  className="rounded-full border border-border bg-card px-2 py-1 text-[10px] text-foreground/80 transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background"
                                 >
-                                  ✏️ Edit
+                                  Edit
                                 </button>
                               )}
                             </div>
@@ -660,15 +681,13 @@ export default function AIGeneratorPage() {
 
                           {isEditing ? (
                             <textarea
-                              className="w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 outline-none shadow-sm transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                              className={`${textarea} text-xs`}
                               rows={6}
                               value={editingValue}
-                              onChange={(e) =>
-                                setEditingValue(e.target.value)
-                              }
+                              onChange={(e) => setEditingValue(e.target.value)}
                             />
                           ) : (
-                            <pre className="whitespace-pre-wrap text-xs text-slate-200">
+                            <pre className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90">
                               {content}
                             </pre>
                           )}

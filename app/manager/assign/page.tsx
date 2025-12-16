@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Card } from "@/components/ui/Card";
 
 type Facility = {
   id: string;
@@ -20,6 +21,28 @@ type Competency = {
   id: string;
   title: string | null;
   risk_level: string | null;
+};
+
+const ui = {
+  page: "min-h-screen bg-background text-foreground",
+  wrap: "mx-auto max-w-4xl px-6 py-10 space-y-6",
+  kicker:
+    "text-[11px] font-semibold uppercase tracking-[0.2em] text-primary",
+  h1: "text-2xl font-semibold tracking-tight",
+  p: "text-sm text-foreground/70",
+  mini: "text-xs text-foreground/60",
+  inputLabel:
+    "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60",
+  input:
+    "w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]",
+  formGrid: "grid gap-3 md:grid-cols-2",
+  msgErr:
+    "rounded-xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-100",
+  msgOk:
+    "rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100",
+  btnPrimary:
+    "inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  cardPad: "p-6",
 };
 
 export default function ManagerAssignPage() {
@@ -53,15 +76,12 @@ export default function ManagerAssignPage() {
       setLoading(true);
       setError(null);
 
-      // 1) Auth check
       const {
         data: { user },
         error: userError,
       } = await supabase.auth.getUser();
 
-      if (userError) {
-        console.error("Auth error", userError);
-      }
+      if (userError) console.error("Auth error", userError);
 
       if (!user) {
         router.replace("/login");
@@ -71,7 +91,6 @@ export default function ManagerAssignPage() {
       setUserId(user.id);
       setEmail(user.email ?? null);
 
-      // 2) Load profile to get org
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("default_org_id")
@@ -93,7 +112,6 @@ export default function ManagerAssignPage() {
       const orgId = profile.default_org_id as string;
       setOrgId(orgId);
 
-      // 3) Load facilities for this org
       const { data: facs, error: facError } = await supabase
         .from("facilities")
         .select("id, name")
@@ -109,12 +127,8 @@ export default function ManagerAssignPage() {
 
       const facList = (facs ?? []) as Facility[];
       setFacilities(facList);
+      if (facList.length) setSelectedFacilityId(facList[0].id);
 
-      if (facList.length) {
-        setSelectedFacilityId(facList[0].id);
-      }
-
-      // 4) Load competencies for this org
       const { data: comps, error: compError } = await supabase
         .from("competencies")
         .select("id, title, risk_level")
@@ -131,9 +145,7 @@ export default function ManagerAssignPage() {
 
       const compList = (comps ?? []) as Competency[];
       setCompetencies(compList);
-      if (compList.length) {
-        setSelectedCompetencyId(compList[0].id);
-      }
+      if (compList.length) setSelectedCompetencyId(compList[0].id);
 
       setLoading(false);
     }
@@ -166,9 +178,7 @@ export default function ManagerAssignPage() {
 
       const staffList = (data ?? []) as StaffMember[];
       setStaff(staffList);
-      if (staffList.length) {
-        setSelectedStaffId(staffList[0].id);
-      }
+      if (staffList.length) setSelectedStaffId(staffList[0].id);
     }
 
     loadStaff();
@@ -196,7 +206,6 @@ export default function ManagerAssignPage() {
 
     setSaving(true);
 
-    // Insert a new staff_competencies row and return its id
     const { data, error: insertError } = await supabase
       .from("staff_competencies")
       .insert({
@@ -219,14 +228,12 @@ export default function ManagerAssignPage() {
       return;
     }
 
-    // Fire email function (best-effort)
     try {
       await supabase.functions.invoke("send_competency_assignment", {
         body: { staff_competency_id: data.id },
       });
     } catch (fnErr) {
       console.error("send_competency_assignment error", fnErr);
-      // Optional: could set a soft warning instead of failing the whole flow
     }
 
     setSaving(false);
@@ -234,123 +241,111 @@ export default function ManagerAssignPage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-200">Loading manager tools…</p>;
+    return (
+      <div className={ui.page}>
+        <div className={ui.wrap}>
+          <p className="text-sm text-foreground/70">Loading manager tools…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Manager – Assign competencies</h1>
-          <p className="text-sm text-slate-300">Signed in as {email}</p>
-          {orgId && (
-            <p className="mt-1 text-xs text-slate-500">Org ID: {orgId}</p>
-          )}
+    <div className={ui.page}>
+      <div className={ui.wrap}>
+        {/* Header */}
+        <div className="flex flex-col gap-2">
+          <p className={ui.kicker}>Manager</p>
+          <h1 className={ui.h1}>Assign competencies</h1>
+          <p className={ui.p}>
+            Signed in as <span className="font-medium text-foreground">{email}</span>
+          </p>
+          {orgId && <p className={ui.mini}>Org ID: {orgId}</p>}
         </div>
+
+        {/* Messages */}
+        {error && <div className={ui.msgErr}>{error}</div>}
+        {success && <div className={ui.msgOk}>{success}</div>}
+
+        {/* Form */}
+        <Card className={ui.cardPad}>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className={ui.formGrid}>
+              <div className="space-y-1">
+                <label className={ui.inputLabel}>Facility</label>
+                <select
+                  value={selectedFacilityId}
+                  onChange={(e) => setSelectedFacilityId(e.target.value)}
+                  className={ui.input}
+                >
+                  {facilities.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name || "Unnamed facility"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className={ui.inputLabel}>Due date</label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className={ui.input}
+                />
+              </div>
+            </div>
+
+            <div className={ui.formGrid}>
+              <div className="space-y-1">
+                <label className={ui.inputLabel}>Staff member</label>
+                <select
+                  value={selectedStaffId}
+                  onChange={(e) => setSelectedStaffId(e.target.value)}
+                  className={ui.input}
+                >
+                  {staff.length === 0 ? (
+                    <option value="">No active staff found</option>
+                  ) : (
+                    staff.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.full_name || s.email || "Unnamed staff"}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className={ui.inputLabel}>Competency</label>
+                <select
+                  value={selectedCompetencyId}
+                  onChange={(e) => setSelectedCompetencyId(e.target.value)}
+                  className={ui.input}
+                >
+                  {competencies.length === 0 ? (
+                    <option value="">No competencies found</option>
+                  ) : (
+                    competencies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title || "Untitled competency"}
+                        {c.risk_level ? ` (${c.risk_level})` : ""}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button type="submit" disabled={saving} className={ui.btnPrimary}>
+                {saving ? "Assigning…" : "Assign competency"}
+              </button>
+            </div>
+          </form>
+        </Card>
       </div>
-
-      {/* Messages */}
-      {error && (
-        <div className="rounded-lg border border-rose-500/60 bg-rose-950/40 px-4 py-3 text-sm text-rose-100">
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="rounded-lg border border-emerald-500/60 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-100">
-          {success}
-        </div>
-      )}
-
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4 rounded-xl border border-slate-800 bg-slate-950 p-4"
-      >
-        {/* Facility + due date */}
-        <div className="grid gap-2 md:grid-cols-2">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Facility
-            </label>
-            <select
-              value={selectedFacilityId}
-              onChange={(e) => setSelectedFacilityId(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
-            >
-              {facilities.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name || "Unnamed facility"}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Due date */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Due date
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
-            />
-          </div>
-        </div>
-
-        {/* Staff + competency */}
-        <div className="grid gap-2 md:grid-cols-2">
-          {/* Staff */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Staff member
-            </label>
-            <select
-              value={selectedStaffId}
-              onChange={(e) => setSelectedStaffId(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
-            >
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.full_name || s.email || "Unnamed staff"}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Competency */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-              Competency
-            </label>
-            <select
-              value={selectedCompetencyId}
-              onChange={(e) => setSelectedCompetencyId(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-emerald-500"
-            >
-              {competencies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.title || "Untitled competency"}{" "}
-                  {c.risk_level ? `(${c.risk_level})` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-full bg-emerald-500 px-5 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:opacity-60"
-          >
-            {saving ? "Assigning…" : "Assign competency"}
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

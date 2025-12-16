@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { FacilitySnapshotCard } from "@/app/dashboard/FacilitySnapshotCard";
+import { Card } from "@/components/ui/Card";
+import { ButtonLink } from "@/components/ui/Button";
 
 type Facility = {
   id: string;
@@ -18,6 +20,28 @@ type ManagerStats = {
 };
 
 const LAST_FACILITY_KEY = "cch:manager:lastFacilityId";
+
+const ui = {
+  page: "min-h-screen bg-background text-foreground",
+  wrap: "mx-auto max-w-6xl space-y-6 px-6 py-8",
+  kicker:
+    "text-[11px] font-semibold uppercase tracking-[0.2em] text-primary",
+  h1: "text-2xl font-semibold tracking-tight",
+  p: "text-sm text-foreground/70",
+  mini: "text-xs text-foreground/60",
+  label:
+    "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60",
+  input:
+    "min-w-[240px] rounded-full border border-border bg-background px-4 py-2 text-sm text-foreground shadow-card outline-none transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+  statNum: "mt-3 text-3xl font-semibold",
+  statHelp: "mt-1 text-xs text-foreground/60",
+  msgWarn:
+    "rounded-2xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100",
+  msgErr:
+    "rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-xs text-rose-100",
+  btnSecondary:
+    "inline-flex items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background",
+};
 
 export default function ManagerDashboardPage() {
   const router = useRouter();
@@ -47,15 +71,12 @@ export default function ManagerDashboardPage() {
       setLoading(true);
       setFacilityError(null);
 
-      // 1) Auth
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError) {
-        console.error("Auth error", authError);
-      }
+      if (authError) console.error("Auth error", authError);
 
       if (!user) {
         router.replace("/login");
@@ -64,7 +85,6 @@ export default function ManagerDashboardPage() {
 
       setEmail(user.email ?? null);
 
-      // 2) Profile for org
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("default_org_id")
@@ -86,7 +106,6 @@ export default function ManagerDashboardPage() {
       const orgId = profile.default_org_id as string;
       setOrgId(orgId);
 
-      // 3) Facilities for this org
       const { data: facilitiesData, error: facilitiesError } = await supabase
         .from("facilities")
         .select("id, name")
@@ -115,9 +134,7 @@ export default function ManagerDashboardPage() {
       let defaultFacilityId: string | null = null;
       if (typeof window !== "undefined") {
         const saved = window.localStorage.getItem(LAST_FACILITY_KEY);
-        if (saved && facs.some((f) => f.id === saved)) {
-          defaultFacilityId = saved;
-        }
+        if (saved && facs.some((f) => f.id === saved)) defaultFacilityId = saved;
       }
       if (!defaultFacilityId) defaultFacilityId = facs[0].id;
 
@@ -148,7 +165,6 @@ export default function ManagerDashboardPage() {
       const in30Iso = in30.toISOString();
 
       try {
-        // active staff count
         const { count: activeStaffCount, error: staffError } = await supabase
           .from("staff_members")
           .select("id", { count: "exact", head: true })
@@ -158,7 +174,6 @@ export default function ManagerDashboardPage() {
 
         if (staffError) throw staffError;
 
-        // overdue competencies
         const { count: overdueCount, error: overdueError } = await supabase
           .from("staff_competencies")
           .select("id", { count: "exact", head: true })
@@ -168,7 +183,6 @@ export default function ManagerDashboardPage() {
 
         if (overdueError) throw overdueError;
 
-        // due in next 30 days (still assigned / not completed)
         const { count: dueSoonCount, error: dueSoonError } = await supabase
           .from("staff_competencies")
           .select("id", { count: "exact", head: true })
@@ -204,16 +218,16 @@ export default function ManagerDashboardPage() {
   }
 
   function handlePrint() {
-    if (typeof window !== "undefined") {
-      window.print();
-    }
+    if (typeof window !== "undefined") window.print();
   }
 
   if (loading) {
     return (
-      <p className="text-sm text-slate-200">
-        Loading manager dashboard…
-      </p>
+      <div className={ui.page}>
+        <div className={ui.wrap}>
+          <p className="text-sm text-foreground/70">Loading manager dashboard…</p>
+        </div>
+      </div>
     );
   }
 
@@ -221,147 +235,117 @@ export default function ManagerDashboardPage() {
     facilities.find((f) => f.id === selectedFacilityId) ?? null;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Manager dashboard</h1>
-          <p className="text-sm text-slate-300">Signed in as {email}</p>
-          {orgId && (
-            <p className="mt-1 text-xs text-slate-500">
-              Organization ID: {orgId}
+    <div className={ui.page}>
+      <div className={ui.wrap}>
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <p className={ui.kicker}>Manager</p>
+            <h1 className={ui.h1}>Manager dashboard</h1>
+            <p className={ui.p}>
+              Signed in as <span className="font-medium text-foreground">{email}</span>
             </p>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-slate-700 px-4 py-1.5 text-xs text-slate-200 hover:bg-slate-800"
-          >
-            Back to admin
-          </Link>
-        </div>
-      </div>
-
-      {/* Facility selector */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
-            Facility
-          </p>
-          <p className="text-xs text-slate-500">
-            Choose which building’s team and competencies you want to manage.
-          </p>
-        </div>
-
-        {facilities.length > 0 && (
-          <select
-            value={selectedFacilityId ?? ""}
-            onChange={(e) => handleFacilityChange(e.target.value)}
-            className="min-w-[220px] rounded-full border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-emerald-500"
-          >
-            {facilities.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name || "Unnamed facility"}
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      {facilityError && (
-        <div className="rounded-xl border border-amber-500/60 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
-          {facilityError}
-        </div>
-      )}
-
-      {/* Quick stats + actions */}
-      {selectedFacility && (
-        <>
-          <div className="grid gap-4 md:grid-cols-4">
-            {/* Active staff */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-xs uppercase font-semibold text-slate-400">
-                Active staff
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-slate-50">
-                {statsLoading ? "…" : stats.activeStaff}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Staff assigned to this facility.
-              </p>
-            </div>
-
-            {/* Overdue */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-xs uppercase font-semibold text-slate-400">
-                Overdue competencies
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-rose-400">
-                {statsLoading ? "…" : stats.overdue}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Staff with at least one overdue competency.
-              </p>
-            </div>
-
-            {/* Due soon */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <p className="text-xs uppercase font-semibold text-slate-400">
-                Due in next 30 days
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-amber-300">
-                {statsLoading ? "…" : stats.dueSoon}
-              </p>
-              <p className="mt-1 text-xs text-slate-500">
-                Active assignments coming due soon.
-              </p>
-            </div>
-
-            {/* Quick actions */}
-            <div className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950 p-4">
-              <div>
-                <p className="text-xs uppercase font-semibold text-slate-400">
-                  Quick actions
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Shortcuts managers use every day.
-                </p>
-              </div>
-
-              <div className="mt-3 space-y-2">
-                <Link
-                  href="/manager/assign"
-                  className="block rounded-full bg-emerald-500 px-4 py-1.5 text-center text-xs font-medium text-slate-950 hover:bg-emerald-400"
-                >
-                  Assign competencies
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  className="w-full rounded-full border border-slate-700 px-4 py-1.5 text-xs text-slate-100 hover:bg-slate-800"
-                >
-                  Print snapshot
-                </button>
-              </div>
-            </div>
+            {orgId && <p className={ui.mini}>Organization ID: {orgId}</p>}
           </div>
 
-          {statsError && (
-            <div className="rounded-lg border border-rose-500/60 bg-rose-950/40 px-4 py-3 text-xs text-rose-100">
-              {statsError}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <ButtonLink href="/dashboard" variant="secondary">
+              Back to admin
+            </ButtonLink>
+          </div>
+        </div>
 
-          {/* Full facility snapshot (reuse your existing card) */}
-          <FacilitySnapshotCard
-            facilityId={selectedFacility.id}
-            facilityName={selectedFacility.name ?? undefined}
-          />
-        </>
-      )}
+        {/* Facility selector */}
+        <Card className="p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className={ui.label}>Facility</div>
+              <div className="mt-1 text-xs text-foreground/60">
+                Choose which building’s team and competencies you want to manage.
+              </div>
+            </div>
+
+            {facilities.length > 0 && (
+              <select
+                value={selectedFacilityId ?? ""}
+                onChange={(e) => handleFacilityChange(e.target.value)}
+                className={ui.input}
+              >
+                {facilities.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name || "Unnamed facility"}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        </Card>
+
+        {facilityError && <div className={ui.msgWarn}>{facilityError}</div>}
+
+        {/* Stats + actions */}
+        {selectedFacility && (
+          <>
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card className="p-5">
+                <div className={ui.label}>Active staff</div>
+                <div className={`${ui.statNum} text-foreground`}>
+                  {statsLoading ? "…" : stats.activeStaff}
+                </div>
+                <div className={ui.statHelp}>Staff assigned to this facility.</div>
+              </Card>
+
+              <Card className="p-5">
+                <div className={ui.label}>Overdue competencies</div>
+                <div className={`${ui.statNum} text-red-300`}>
+                  {statsLoading ? "…" : stats.overdue}
+                </div>
+                <div className={ui.statHelp}>
+                  Items currently marked overdue for this facility.
+                </div>
+              </Card>
+
+              <Card className="p-5">
+                <div className={ui.label}>Due in next 30 days</div>
+                <div className={`${ui.statNum} text-amber-200`}>
+                  {statsLoading ? "…" : stats.dueSoon}
+                </div>
+                <div className={ui.statHelp}>Active assignments coming due soon.</div>
+              </Card>
+
+              <Card className="p-5">
+                <div className={ui.label}>Quick actions</div>
+                <div className="mt-1 text-xs text-foreground/60">
+                  Shortcuts managers use every day.
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  <ButtonLink href="/manager/assign" variant="primary" className="w-full">
+                    Assign competencies
+                  </ButtonLink>
+
+                  <button type="button" onClick={handlePrint} className={`${ui.btnSecondary} w-full`}>
+                    Print snapshot
+                  </button>
+
+                  {/* Optional: quick hop into staff/facility screens */}
+                  <Link href="/dashboard/staff" className="block text-center text-xs text-primary hover:opacity-90">
+                    Manage staff →
+                  </Link>
+                </div>
+              </Card>
+            </div>
+
+            {statsError && <div className={ui.msgErr}>{statsError}</div>}
+
+            {/* Snapshot card (your existing component) */}
+            <FacilitySnapshotCard
+              facilityId={selectedFacility.id}
+              facilityName={selectedFacility.name ?? undefined}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 }

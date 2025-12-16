@@ -35,6 +35,71 @@ type AssignmentRow = {
   competency: Competency | null;
 };
 
+// ---- UI tokens / helpers ----
+const card = "rounded-2xl border border-border bg-card shadow-card";
+const subtext = "text-sm text-foreground/60";
+const label =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60";
+const btnPrimary =
+  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const btnSmallPrimary =
+  "inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const pill =
+  "inline-flex items-center rounded-full border border-border bg-muted px-2 py-1 text-[11px] font-semibold text-foreground/70";
+
+function riskBadge(risk: string | null) {
+  if (!risk) return null;
+
+  const v = risk.toLowerCase();
+  const base =
+    "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border";
+
+  if (v === "critical")
+    return (
+      <span className={`${base} bg-red-500/10 text-red-300 border-red-500/30`}>
+        Critical
+      </span>
+    );
+  if (v === "high")
+    return (
+      <span
+        className={`${base} bg-orange-500/10 text-orange-300 border-orange-500/30`}
+      >
+        High
+      </span>
+    );
+  if (v === "medium")
+    return (
+      <span
+        className={`${base} bg-yellow-500/10 text-yellow-200 border-yellow-500/30`}
+      >
+        Medium
+      </span>
+    );
+
+  return (
+    <span className={`${base} bg-emerald-500/10 text-emerald-200 border-emerald-500/30`}>
+      {risk}
+    </span>
+  );
+}
+
+function statusBadge(a: Assignment) {
+  const isCompleted = a.status === "completed";
+  const base =
+    "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold border";
+
+  return isCompleted ? (
+    <span className={`${base} bg-emerald-500/10 text-emerald-200 border-emerald-500/30`}>
+      Completed
+    </span>
+  ) : (
+    <span className={`${base} bg-sky-500/10 text-sky-200 border-sky-500/30`}>
+      Assigned
+    </span>
+  );
+}
+
 export default function MyCompetenciesPage() {
   const router = useRouter();
   const { loading: orgLoading, org, organizationId } = useOrg();
@@ -51,12 +116,7 @@ export default function MyCompetenciesPage() {
   const userRole =
     (org?.role as "admin" | "manager" | "staff" | string | null) ?? "staff";
 
-  // Helper: flash message
-  function flashMessage(
-    type: "error" | "success",
-    message: string,
-    timeout = 3000
-  ) {
+  function flashMessage(type: "error" | "success", message: string, timeout = 3000) {
     if (type === "error") {
       setError(message);
       setSuccess(null);
@@ -76,6 +136,7 @@ export default function MyCompetenciesPage() {
       if (orgLoading) return;
 
       setLoading(true);
+      setError(null);
 
       if (!organizationId || !org) {
         setError("Unable to load your organization.");
@@ -96,9 +157,7 @@ export default function MyCompetenciesPage() {
 
       const email = user.email;
       if (!email) {
-        setError(
-          "Your account does not have an email address. Please contact support."
-        );
+        setError("Your account does not have an email address. Please contact support.");
         setLoading(false);
         return;
       }
@@ -139,6 +198,7 @@ export default function MyCompetenciesPage() {
     async function loadAssignments(currentStaff: StaffSelf) {
       setLoading(true);
       setRows([]);
+      setError(null);
 
       const { data: assignments, error: assignErr } = await supabase
         .from("competency_assignments")
@@ -190,20 +250,12 @@ export default function MyCompetenciesPage() {
       setLoading(false);
     }
 
-    // pass staff as arg so TS knows it's non-null in loader
     loadAssignments(staff);
   }, [staff]);
 
-  // 3) Derived progress metrics (includes dueSoon)
+  // 3) Derived progress metrics
   const progress = useMemo(() => {
-    if (!rows.length) {
-      return {
-        total: 0,
-        completed: 0,
-        overdue: 0,
-        dueSoon: 0,
-      };
-    }
+    if (!rows.length) return { total: 0, completed: 0, overdue: 0, dueSoon: 0 };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -243,7 +295,6 @@ export default function MyCompetenciesPage() {
     if (!assignmentId) return;
 
     setSaving(true);
-
     const now = new Date().toISOString();
 
     const { data, error: updateErr } = await supabase
@@ -272,44 +323,10 @@ export default function MyCompetenciesPage() {
     setSaving(false);
   }
 
-  // Risk badge
-  function riskBadge(risk: string | null) {
-    if (!risk) return null;
-    const base =
-      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
-    const color =
-      risk === "Critical"
-        ? "bg-red-500/10 text-red-400 border border-red-500/40"
-        : risk === "High"
-        ? "bg-orange-500/10 text-orange-400 border border-orange-500/40"
-        : risk === "Medium"
-        ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/40"
-        : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40";
-    return <span className={`${base} ${color}`}>{risk}</span>;
-  }
-
-  // Status badge
-  function statusBadge(a: Assignment) {
-    const isCompleted = a.status === "completed";
-    const base =
-      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
-    const color = isCompleted
-      ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40"
-      : "bg-sky-500/10 text-sky-300 border border-sky-500/40";
-
-    return (
-      <span className={`${base} ${color}`}>
-        {isCompleted ? "Completed" : "Assigned"}
-      </span>
-    );
-  }
-
-  // ----- RENDER -----
-
   if (orgLoading || loading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="px-6 py-8 text-sm text-slate-400">
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="px-6 py-8 text-sm text-foreground/60">
           Loading your competencies…
         </div>
       </div>
@@ -317,40 +334,35 @@ export default function MyCompetenciesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-5xl space-y-6 px-6 py-8">
         {/* Header */}
-        <div className="flex items-baseline justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              My competencies
-            </h1>
-            <p className="mt-1 text-sm text-slate-400">
-              See what&apos;s assigned to you, track due dates, and mark
-              competencies as completed.
+            <h1 className="text-2xl font-semibold tracking-tight">My competencies</h1>
+            <p className={`mt-1 ${subtext}`}>
+              See what&apos;s assigned to you, track due dates, and mark items completed.
             </p>
           </div>
 
           {staff && (
-            <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-3 py-2 text-right text-[11px] text-slate-400">
-              <div className="font-medium text-[var(--foreground)]">
+            <div className={`${card} px-4 py-3 text-right`}>
+              <div className="text-sm font-semibold">
                 {staff.full_name || staff.email || "Staff member"}
               </div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                {userRole || "staff"}
-              </div>
+              <div className={label}>{userRole || "staff"}</div>
             </div>
           )}
         </div>
 
         {/* Messages */}
         {error && (
-          <div className="rounded-md border border-red-500/40 bg-red-950/60 px-3 py-2 text-sm text-red-200">
+          <div className="rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
             {error}
           </div>
         )}
         {success && (
-          <div className="rounded-md border border-emerald-500/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-200">
+          <div className="rounded-2xl border border-emerald-500/40 bg-emerald-950/40 px-4 py-3 text-sm text-emerald-200">
             {success}
           </div>
         )}
@@ -358,115 +370,74 @@ export default function MyCompetenciesPage() {
         {/* Summary cards */}
         {!error && (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard
-              label="Assigned"
-              value={assignedActive}
-              sub="Currently on your plate"
-            />
-            <SummaryCard
-              label="Completed"
-              value={progress.completed}
-              sub="Marked as finished"
-            />
-            <SummaryCard
-              label="Overdue"
-              value={progress.overdue}
-              sub="Past due date"
-              tone="danger"
-            />
-            <SummaryCard
-              label="Due soon"
-              value={progress.dueSoon}
-              sub="Within the next 7 days"
-              tone="warn"
-            />
+            <SummaryCard label="Assigned" value={assignedActive} sub="Currently on your plate" />
+            <SummaryCard label="Completed" value={progress.completed} sub="Marked as finished" />
+            <SummaryCard label="Overdue" value={progress.overdue} sub="Past due date" tone="danger" />
+            <SummaryCard label="Due soon" value={progress.dueSoon} sub="Within the next 7 days" tone="warn" />
           </div>
         )}
 
         {/* Assignments table */}
-        <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
-          <div className="flex items-center justify-between border-b border-slate-800 bg-[var(--surface)] px-4 py-3">
+        <div className={card}>
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
-              <h2 className="text-sm font-medium">Assigned competencies</h2>
-              <p className="text-xs text-slate-400">
-                Mark items as completed once you&apos;ve finished the required
-                training or skills validation.
+              <h2 className="text-sm font-semibold">Assigned competencies</h2>
+              <p className="mt-0.5 text-xs text-foreground/60">
+                Mark items as completed once you&apos;ve finished the required training.
               </p>
             </div>
-            {saving && (
-              <span className="text-xs text-emerald-300/80">Saving…</span>
-            )}
+            {saving && <span className="text-xs text-primary/80">Saving…</span>}
           </div>
 
           {rows.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-slate-400">
+            <div className="px-4 py-6 text-sm text-foreground/60">
               You don&apos;t have any competencies assigned yet.
             </div>
           ) : (
             <div className="max-h-[520px] overflow-auto">
               <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-[var(--surface)] backdrop-blur">
-                  <tr className="border-b border-slate-900/60 text-xs uppercase tracking-wide text-slate-400">
-                    <th className="px-4 py-2 text-left font-medium">Title</th>
-                    <th className="px-4 py-2 text-left font-medium">Risk</th>
-                    <th className="px-4 py-2 text-left font-medium">Status</th>
-                    <th className="px-4 py-2 text-left font-medium">
-                      Due date
-                    </th>
-                    <th className="px-4 py-2 text-right font-medium">
-                      Action
-                    </th>
+                <thead className="sticky top-0 bg-card/95 backdrop-blur">
+                  <tr className="border-b border-border text-xs uppercase tracking-wide text-foreground/60">
+                    <th className="px-4 py-2 text-left font-semibold">Title</th>
+                    <th className="px-4 py-2 text-left font-semibold">Risk</th>
+                    <th className="px-4 py-2 text-left font-semibold">Status</th>
+                    <th className="px-4 py-2 text-left font-semibold">Due date</th>
+                    <th className="px-4 py-2 text-right font-semibold">Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border">
                   {rows.map((row) => {
                     const { assignment, competency } = row;
                     const isCompleted = assignment.status === "completed";
-                    const due =
-                      assignment.due_date &&
-                      assignment.due_date.slice(0, 10);
+                    const due = assignment.due_date && assignment.due_date.slice(0, 10);
 
                     return (
-                      <tr
-                        key={assignment.id}
-                        className="border-b border-slate-900/60"
-                      >
+                      <tr key={assignment.id} className="hover:bg-muted/40">
                         <td className="px-4 py-3 align-top">
                           <div className="flex flex-col">
-                            <span className="font-medium">
+                            <span className="font-semibold">
                               {competency?.title ?? "Untitled competency"}
                             </span>
-                            {competency?.roles &&
-                              competency.roles.length > 0 && (
-                                <span className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">
-                                  {competency.roles.join(", ")}
-                                </span>
-                              )}
+                            {competency?.roles && competency.roles.length > 0 && (
+                              <span className="mt-1 text-[11px] uppercase tracking-wide text-foreground/50">
+                                {competency.roles.join(", ")}
+                              </span>
+                            )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 align-top">
-                          {riskBadge(competency?.risk ?? null)}
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          {statusBadge(assignment)}
-                        </td>
-                        <td className="px-4 py-3 align-top text-xs text-slate-300">
-                          {due || "—"}
-                        </td>
+                        <td className="px-4 py-3 align-top">{riskBadge(competency?.risk ?? null)}</td>
+                        <td className="px-4 py-3 align-top">{statusBadge(assignment)}</td>
+                        <td className="px-4 py-3 align-top text-xs text-foreground/70">{due || "—"}</td>
                         <td className="px-4 py-3 align-top text-right">
                           {isCompleted ? (
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs text-foreground/60">
                               Completed{" "}
-                              {assignment.completed_at
-                                ? assignment.completed_at.slice(0, 10)
-                                : ""}
+                              {assignment.completed_at ? assignment.completed_at.slice(0, 10) : ""}
                             </span>
                           ) : (
                             <button
-                              onClick={() =>
-                                handleMarkComplete(assignment.id)
-                              }
-                              className="inline-flex items-center rounded-md bg-emerald-500 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-slate-950"
+                              onClick={() => handleMarkComplete(assignment.id)}
+                              className={btnSmallPrimary}
                             >
                               Mark complete
                             </button>
@@ -480,6 +451,12 @@ export default function MyCompetenciesPage() {
             </div>
           )}
         </div>
+
+        <div className="flex justify-end">
+          <button onClick={() => router.push("/dashboard")} className={btnPrimary}>
+            Back to dashboard
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -492,30 +469,19 @@ type SummaryCardProps = {
   tone?: "default" | "warn" | "danger";
 };
 
-function SummaryCard({
-  label,
-  value,
-  sub,
-  tone = "default",
-}: SummaryCardProps) {
-  const base =
-    "rounded-xl border px-4 py-3 flex flex-col gap-1 bg-[var(--surface-soft)]";
+function SummaryCard({ label, value, sub, tone = "default" }: SummaryCardProps) {
   const toneClasses =
     tone === "danger"
-      ? "border-rose-500/60 bg-rose-500/10"
+      ? "border-red-500/40 bg-red-950/30"
       : tone === "warn"
-      ? "border-amber-500/60 bg-amber-500/10"
-      : "border-slate-800";
+      ? "border-amber-500/40 bg-amber-950/25"
+      : "border-border bg-card";
 
   return (
-    <div className={`${base} ${toneClasses}`}>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
-      <span className="text-2xl font-semibold text-[var(--foreground)]">
-        {value}
-      </span>
-      {sub && <span className="text-xs text-slate-400">{sub}</span>}
+    <div className={`rounded-2xl border ${toneClasses} shadow-card px-4 py-3`}>
+      <div className={label}>{label}</div>
+      <div className="mt-1 text-3xl font-semibold">{value}</div>
+      {sub && <div className="mt-1 text-xs text-foreground/60">{sub}</div>}
     </div>
   );
 }

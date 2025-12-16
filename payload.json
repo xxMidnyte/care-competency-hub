@@ -1,0 +1,10 @@
+{
+  "org_id": "a18eb3de-36d3-4083-ae3e-bda6484f6318",
+  "event_type": "assignment_completed",
+  "payload": {
+    "staff_name": "Test Staff",
+    "competency_title": "Fire Safety",
+    "assignment_id": "00000000-0000-0000-0000-000000000000",
+    "href": "/dashboard/assignments/00000000-0000-0000-0000-000000000000"
+  }
+}

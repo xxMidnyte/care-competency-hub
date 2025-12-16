@@ -11,16 +11,9 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="flex min-h-[calc(100vh-56px)]">
+      <div className="flex min-h-[calc(100vh-56px)] bg-background text-foreground">
         <DashboardSidebar />
-        <div
-          className="
-            flex-1
-            border-l
-            bg-slate-50 text-slate-900 border-slate-200
-            dark:bg-slate-950 dark:text-slate-100 dark:border-slate-900
-          "
-        >
+        <div className="flex-1 border-l border-border bg-background">
           {children}
         </div>
       </div>

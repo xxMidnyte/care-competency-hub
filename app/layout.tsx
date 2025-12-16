@@ -9,6 +9,21 @@ export const metadata = {
   description: "Competency & compliance hub for healthcare teams.",
 };
 
+const ui = {
+  body: "min-h-screen antialiased bg-background text-foreground",
+  shell: "flex min-h-screen flex-col",
+  main: "mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 py-8 sm:py-10",
+  footer: "border-t border-border bg-background",
+  footerWrap:
+    "mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 py-8 md:flex-row md:items-start md:justify-between",
+  footerTitle:
+    "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60",
+  footerLink: "text-foreground/80 hover:text-primary transition",
+  footerMuted: "text-foreground/60",
+  footerFine: "text-[11px] text-foreground/50",
+  divider: "border-t border-border",
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -16,22 +31,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      {/* Body is now theme-aware */}
-      <body className="min-h-screen antialiased bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-        <div className="flex min-h-screen flex-col">
+      <body className={ui.body}>
+        <div className={ui.shell}>
           {/* TOP NAVBAR (client component handles auth + theme toggle) */}
           <TopNav />
 
           {/* MAIN CONTENT */}
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
-            {children}
-          </main>
+          <main className={ui.main}>{children}</main>
 
           {/* FOOTER */}
-          <footer className="border-t border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
-            <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 md:flex-row md:items-start md:justify-between">
+          <footer className={ui.footer}>
+            <div className={ui.footerWrap}>
               {/* Brand + tagline */}
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Image
                     src="/logo-mark.png"
@@ -44,12 +56,14 @@ export default function RootLayout({
                     CareCompetencyHub
                   </span>
                 </div>
-                <p className="max-w-sm text-[12px] leading-relaxed text-slate-500 dark:text-slate-400">
+
+                <p className={`max-w-sm text-[12px] leading-relaxed ${ui.footerMuted}`}>
                   Nurse-led competency &amp; compliance tooling for nursing and
                   rehab teams. Built for people who are tired of spreadsheets,
                   binders, and &quot;we&apos;ll find it later.&quot;
                 </p>
-                <p className="text-[11px] text-slate-500 dark:text-slate-500">
+
+                <p className={ui.footerFine}>
                   Made by nurses &amp; therapists in Minnesota. 💚
                 </p>
               </div>
@@ -57,31 +71,20 @@ export default function RootLayout({
               {/* Navigation columns */}
               <div className="grid flex-1 gap-6 text-[12px] md:grid-cols-3">
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    Product
-                  </h3>
-                  <ul className="mt-3 space-y-2 text-slate-700 dark:text-slate-300">
+                  <h3 className={ui.footerTitle}>Product</h3>
+                  <ul className="mt-3 space-y-2">
                     <li>
-                      <Link
-                        href="/pricing"
-                        className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                      >
+                      <Link href="/pricing" className={ui.footerLink}>
                         Pricing
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        href="/demo"
-                        className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                      >
+                      <Link href="/demo" className={ui.footerLink}>
                         Book a demo
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        href="/contact"
-                        className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                      >
+                      <Link href="/contact" className={ui.footerLink}>
                         Contact
                       </Link>
                     </li>
@@ -89,31 +92,20 @@ export default function RootLayout({
                 </div>
 
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    Resources
-                  </h3>
-                  <ul className="mt-3 space-y-2 text-slate-700 dark:text-slate-300">
+                  <h3 className={ui.footerTitle}>Resources</h3>
+                  <ul className="mt-3 space-y-2">
                     <li>
-                      <Link
-                        href="/blog"
-                        className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                      >
+                      <Link href="/blog" className={ui.footerLink}>
                         Blog
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        href="/podcast"
-                        className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                      >
+                      <Link href="/podcast" className={ui.footerLink}>
                         Podcast
                       </Link>
                     </li>
                     <li>
-                      <Link
-                        href="/help"
-                        className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                      >
+                      <Link href="/help" className={ui.footerLink}>
                         Help & FAQs
                       </Link>
                     </li>
@@ -121,25 +113,20 @@ export default function RootLayout({
                 </div>
 
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                    Contact
-                  </h3>
-                  <div className="mt-3 space-y-2 text-slate-700 dark:text-slate-300">
+                  <h3 className={ui.footerTitle}>Contact</h3>
+                  <div className="mt-3 space-y-2">
                     <p className="text-[12px]">
                       Email{" "}
                       <a
                         href="mailto:info@carecompetencyhub.com"
-                        className="font-mono text-emerald-500 hover:text-emerald-400 dark:text-emerald-300 dark:hover:text-emerald-200"
+                        className="font-mono text-primary hover:opacity-90 transition"
                       >
                         info@carecompetencyhub.com
                       </a>
                     </p>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className={ui.footerFine}>
                       Prefer a call? Book a time on our{" "}
-                      <Link
-                        href="/demo"
-                        className="text-emerald-500 hover:text-emerald-400 dark:text-emerald-300 dark:hover:text-emerald-200"
-                      >
+                      <Link href="/demo" className="text-primary hover:opacity-90 transition">
                         demo calendar
                       </Link>
                       .
@@ -149,23 +136,14 @@ export default function RootLayout({
               </div>
             </div>
 
-            <div className="border-t border-slate-200 dark:border-slate-800">
-              <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 py-4 text-[11px] text-slate-500 dark:text-slate-400 sm:flex-row">
-                <p>
-                  © {new Date().getFullYear()} CareCompetencyHub. All rights
-                  reserved.
-                </p>
+            <div className={ui.divider}>
+              <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 sm:px-6 py-4 text-[11px] text-foreground/50 sm:flex-row">
+                <p>© {new Date().getFullYear()} CareCompetencyHub. All rights reserved.</p>
                 <div className="flex gap-4">
-                  <Link
-                    href="/terms"
-                    className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                  >
+                  <Link href="/terms" className="hover:text-primary transition">
                     Terms
                   </Link>
-                  <Link
-                    href="/privacy"
-                    className="hover:text-emerald-400 dark:hover:text-emerald-300"
-                  >
+                  <Link href="/privacy" className="hover:text-primary transition">
                     Privacy
                   </Link>
                 </div>

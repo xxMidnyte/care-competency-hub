@@ -59,13 +59,11 @@ export default function ManagerAssignPage() {
 
   const [competency, setCompetency] = useState<Competency | null>(null);
 
-  // Derived: filtered staff by facility
   const visibleStaff = useMemo(() => {
     if (!selectedFacilityId) return staff;
     return staff.filter((s) => s.facility_id === selectedFacilityId);
   }, [staff, selectedFacilityId]);
 
-  // Auth check (for userId / assigned_by)
   useEffect(() => {
     async function loadUser() {
       const {
@@ -83,7 +81,6 @@ export default function ManagerAssignPage() {
     loadUser();
   }, [router]);
 
-  // Load org-scoped data once org context is ready
   useEffect(() => {
     if (orgLoading) return;
 
@@ -97,7 +94,6 @@ export default function ManagerAssignPage() {
       setLoading(true);
       setError(null);
 
-      // Facilities
       const { data: facData, error: facError } = await supabase
         .from("facilities")
         .select("id, name")
@@ -105,7 +101,7 @@ export default function ManagerAssignPage() {
         .order("name", { ascending: true });
 
       if (facError) {
-        console.error(facError);
+        console.error("Facilities load error:", facError);
         setError("Unable to load facilities.");
         setLoading(false);
         return;
@@ -116,16 +112,15 @@ export default function ManagerAssignPage() {
         setSelectedFacilityId(facData[0].id);
       }
 
-      // Staff (all active staff in org; filtered by facility in UI)
+      // ✅ FIX: removed `.eq("is_active", true)` since column doesn't exist
       const { data: staffData, error: staffError } = await supabase
         .from(STAFF_TABLE)
         .select("id, full_name, email, facility_id")
         .eq("org_id", organizationId)
-        .eq("is_active", true)
         .order("full_name", { ascending: true });
 
       if (staffError) {
-        console.error(staffError);
+        console.error("Staff load error:", staffError);
         setError("Unable to load staff.");
         setLoading(false);
         return;
@@ -133,7 +128,6 @@ export default function ManagerAssignPage() {
 
       setStaff(staffData || []);
 
-      // Competency (if provided)
       if (competencyId) {
         const { data: compData, error: compError } = await supabase
           .from(COMPETENCY_TABLE)
@@ -143,7 +137,7 @@ export default function ManagerAssignPage() {
           .single();
 
         if (compError || !compData) {
-          console.error(compError);
+          console.error("Competency load error:", compError);
           setError("Unable to load selected competency.");
           setLoading(false);
           return;
@@ -169,6 +163,7 @@ export default function ManagerAssignPage() {
 
   async function handleAssign() {
     if (!organizationId || !userId) return;
+
     if (!competency) {
       setError("No competency loaded to assign.");
       return;
@@ -204,7 +199,7 @@ export default function ManagerAssignPage() {
         .insert(payload);
 
       if (insertError) {
-        console.error(insertError);
+        console.error("Assignment insert error:", insertError);
         setError("Failed to assign competency. Please try again.");
         setSaving(false);
         return;
@@ -229,7 +224,6 @@ export default function ManagerAssignPage() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
-        {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
@@ -247,30 +241,26 @@ export default function ManagerAssignPage() {
           </button>
         </div>
 
-        {/* Global loading / hard errors / role gate */}
         {orgLoading || loading ? (
           <div className="px-6 py-8 text-sm text-slate-400">Loading…</div>
         ) : !organizationId ? (
           <div className="rounded-xl border border-red-500/40 bg-red-950/60 px-4 py-6 text-sm text-red-100">
-            Organization context could not be loaded. Please refresh the page
-            or contact support if this continues.
+            Organization context could not be loaded. Please refresh the page or
+            contact support if this continues.
           </div>
         ) : !isManagerOrAdmin ? (
           <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-4 py-6 text-sm text-slate-300">
-            You don&apos;t have permission to assign competencies. Please
-            contact your administrator if you think this is a mistake.
+            You don&apos;t have permission to assign competencies. Please contact
+            your administrator if you think this is a mistake.
           </div>
         ) : (
           <>
-            {/* Selected competency summary */}
             {competency && (
               <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
                 <p className="text-xs uppercase tracking-wide text-slate-400">
                   Selected competency
                 </p>
-                <p className="mt-1 text-sm font-medium">
-                  {competency.title}
-                </p>
+                <p className="mt-1 text-sm font-medium">{competency.title}</p>
                 {competency.risk_level && (
                   <p className="mt-1 text-xs text-slate-400">
                     Risk level:{" "}
@@ -294,11 +284,11 @@ export default function ManagerAssignPage() {
               </div>
             )}
 
-            {/* Top controls: facility, due date, notes */}
             <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
-              {/* Left: staff filters */}
               <div className="space-y-3 rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
-                <h2 className="text-sm font-semibold">Who should complete this?</h2>
+                <h2 className="text-sm font-semibold">
+                  Who should complete this?
+                </h2>
 
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-slate-400">
@@ -316,7 +306,7 @@ export default function ManagerAssignPage() {
                     )}
                     {facilities.map((f) => (
                       <option key={f.id} value={f.id}>
-                        {f.name}
+                        {f.name || "(Unnamed facility)"}
                       </option>
                     ))}
                   </select>
@@ -331,7 +321,6 @@ export default function ManagerAssignPage() {
                 </p>
               </div>
 
-              {/* Right: due date + notes */}
               <div className="space-y-3 rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
                 <h2 className="text-sm font-semibold">Assignment details</h2>
 
@@ -362,7 +351,6 @@ export default function ManagerAssignPage() {
               </div>
             </div>
 
-            {/* Staff table */}
             <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
               <div className="flex items-center justify-between border-b border-slate-800 bg-[var(--surface)] px-4 py-3">
                 <h2 className="text-sm font-semibold">
@@ -422,7 +410,6 @@ export default function ManagerAssignPage() {
               )}
             </div>
 
-            {/* Footer actions */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-400">
                 You’re assigning this competency{" "}

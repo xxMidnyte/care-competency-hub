@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { OnboardingChecklist } from "@/components/onboarding/OnboardingChecklist";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
 
 type Profile = {
   id: string;
@@ -13,7 +15,6 @@ type Profile = {
   org_id: string | null;
 };
 
-// tweak these if your routes differ
 const ROUTES = {
   login: "/login",
   facilities: "/dashboard/facilities",
@@ -22,7 +23,7 @@ const ROUTES = {
   reports: "/dashboard/reports",
   createCompetency: "/dashboard/competencies/new",
   aiBuilder: "/dashboard/competencies/ai-builder",
-  surveyPocs: "/dashboard/deficiencies", // 🔹 NEW: Survey & POCs hub
+  surveyPocs: "/dashboard/deficiencies",
 };
 
 type OnboardingFlags = {
@@ -32,6 +33,9 @@ type OnboardingFlags = {
   invite: boolean;
   report: boolean;
 };
+
+const chip =
+  "rounded-full border border-border bg-muted px-4 py-2 text-[12px] font-medium text-foreground";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -56,7 +60,6 @@ export default function DashboardPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      // not logged in → bounce to login
       if (!user) {
         setRedirecting(true);
         router.replace(ROUTES.login);
@@ -67,63 +70,46 @@ export default function DashboardPage() {
       const role = meta.role || meta.user_role || "Manager";
       setRoleLabel(role);
 
-      // 1) Get profile
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("id, has_completed_onboarding, org_id")
         .eq("id", user.id)
         .single();
 
-      let currentProfile: Profile;
-
-      if (!profileError && profileData) {
-        currentProfile = profileData as Profile;
-      } else {
-        // fallback if no profile row exists yet
-        currentProfile = {
-          id: user.id,
-          has_completed_onboarding: false,
-          org_id: null,
-        };
-      }
+      const currentProfile: Profile =
+        !profileError && profileData
+          ? (profileData as Profile)
+          : { id: user.id, has_completed_onboarding: false, org_id: null };
 
       setProfile(currentProfile);
 
-      // 2) Derive onboarding flags from real data (org, facilities, staff, etc.)
       const orgId = currentProfile.org_id;
 
       let hasFacility = false;
       let hasStaff = false;
 
       if (orgId) {
-        // check if there is at least one facility for this org
         const { data: facs, error: facError } = await supabase
           .from("facilities")
           .select("id")
           .eq("org_id", orgId)
           .limit(1);
 
-        if (!facError && facs && facs.length > 0) {
-          hasFacility = true;
-        }
+        if (!facError && facs && facs.length > 0) hasFacility = true;
 
-        // check if there is at least one staff member for this org
+        // ✅ staff_members (not staff)
         const { data: staffRows, error: staffError } = await supabase
-          .from("staff")
+          .from("staff_members")
           .select("id")
           .eq("org_id", orgId)
           .limit(1);
 
-        if (!staffError && staffRows && staffRows.length > 0) {
-          hasStaff = true;
-        }
+        if (!staffError && staffRows && staffRows.length > 0) hasStaff = true;
       }
 
-      // For now we’ll treat assign/invite/report as TODOs and infer some basics:
       const flags: OnboardingFlags = {
         facility: !!orgId && hasFacility,
         staff: !!orgId && hasStaff,
-        // you can later wire these to real tables (e.g. staff_competencies, invites, reports)
         assign: false,
         invite: false,
         report: false,
@@ -138,24 +124,17 @@ export default function DashboardPage() {
         flags.invite &&
         flags.report;
 
-      // 3) Decide whether to show wizard
       if (currentProfile.has_completed_onboarding) {
-        // user explicitly finished onboarding previously → never show wizard
         setShowWizard(false);
       } else if (allStepsComplete) {
-        // data is already fully set up → silently mark onboarding complete & hide wizard
         await supabase
           .from("profiles")
           .update({ has_completed_onboarding: true })
           .eq("id", currentProfile.id);
 
-        setProfile({
-          ...currentProfile,
-          has_completed_onboarding: true,
-        });
+        setProfile({ ...currentProfile, has_completed_onboarding: true });
         setShowWizard(false);
       } else {
-        // some steps missing → show wizard
         setShowWizard(true);
       }
 
@@ -219,26 +198,10 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateCompetency = () => {
-    router.push(ROUTES.createCompetency);
-  };
-
-  const handleAiBuilder = () => {
-    router.push(ROUTES.aiBuilder);
-  };
-
-  const handleAssignCompetencies = () => {
-    router.push(ROUTES.assign);
-  };
-
-  const handleSurveyPocs = () => {
-    router.push(ROUTES.surveyPocs);
-  };
-
   if (loading || redirecting) {
     return (
-      <div className="p-6 text-sm text-slate-300">
-        Loading...
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="px-6 py-6 text-sm text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -246,155 +209,164 @@ export default function DashboardPage() {
   const allChecklistDone = checklistSteps.every((s) => s.completed);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* ONBOARDING WIZARD MODAL */}
-      {profile && showWizard && (
-        <OnboardingWizard
-          userId={profile.id}
-          orgId={profile.org_id}
-          initialOpen={true}
-          onCompleted={async () => {
-            setShowWizard(false);
-            setProfile((prev) =>
-              prev ? { ...prev, has_completed_onboarding: true } : prev
-            );
-            // you could also refresh onboardingFlags here if the wizard
-            // creates facility/staff/etc.
-          }}
-        />
-      )}
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-6xl space-y-6 px-6 py-6">
+        {profile && showWizard && (
+          <OnboardingWizard
+            userId={profile.id}
+            orgId={profile.org_id}
+            initialOpen={true}
+            onCompleted={async () => {
+              setShowWizard(false);
+              setProfile((prev) =>
+                prev ? { ...prev, has_completed_onboarding: true } : prev
+              );
+            }}
+          />
+        )}
 
-      {/* ONBOARDING CHECKLIST – hide if profile says done OR all steps are done */}
-      {!profile?.has_completed_onboarding && !allChecklistDone && (
-        <OnboardingChecklist
-          steps={checklistSteps}
-          onClickContinue={() => setShowWizard(true)}
-          onStepClick={handleChecklistStepClick}
-        />
-      )}
+        {!profile?.has_completed_onboarding && !allChecklistDone && (
+          <OnboardingChecklist
+            steps={checklistSteps}
+            onClickContinue={() => setShowWizard(true)}
+            onStepClick={handleChecklistStepClick}
+          />
+        )}
 
-      {/* PAGE HEADER */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-50">
-            {roleLabel} Overview
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+        {/* Header */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold text-foreground">
+              {roleLabel} Overview
+            </h1>
+            <p className="text-sm text-muted-foreground">{subtitle}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={() => {}}>
+              View notifications
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push(ROUTES.staff)}
+            >
+              Manage team
+            </Button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-100 hover:border-emerald-500/60">
-            View notifications
-          </button>
-          <button
-            className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs text-slate-100 hover:border-emerald-500/60"
-            onClick={() => router.push(ROUTES.staff)}
-          >
-            Manage team
-          </button>
+        {/* Main grid */}
+        <div className="grid gap-6 lg:grid-cols-[2.1fr,1.3fr]">
+          {/* Snapshot */}
+          <Card className="p-4">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Current facility snapshot
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Overview for your currently selected facility.
+                </div>
+              </div>
+
+              <Button
+                variant="secondary"
+                size="xs"
+                onClick={() => router.push(ROUTES.reports)}
+              >
+                View full report
+              </Button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-3">
+              <Card className="border-border bg-muted/30 p-4 shadow-none">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Competencies overdue
+                </div>
+                <div className="mt-3 text-3xl font-semibold text-foreground">
+                  18
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Staff are past due on these items.
+                </div>
+              </Card>
+
+              <Card className="border-border bg-muted/30 p-4 shadow-none">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Due this month
+                </div>
+                <div className="mt-3 text-3xl font-semibold text-foreground">
+                  42
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Items coming due in the next 30 days.
+                </div>
+              </Card>
+
+              <Card className="border-border bg-muted/30 p-4 shadow-none">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  On track
+                </div>
+                <div className="mt-3 text-3xl font-semibold text-foreground">
+                  86%
+                </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Staff who are fully up to date.
+                </div>
+              </Card>
+            </div>
+          </Card>
+
+          {/* Quick actions */}
+          <Card className="p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Quick actions
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <Button
+                variant="primary"
+                className="w-full justify-between"
+                onClick={() => router.push(ROUTES.createCompetency)}
+              >
+                <span>Create competency</span>
+                <span className="text-xs">↗</span>
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="w-full justify-between"
+                onClick={() => router.push(ROUTES.aiBuilder)}
+              >
+                <span>AI Builder</span>
+                <span className="text-xs text-muted-foreground">Draft with AI</span>
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="w-full justify-between"
+                onClick={() => router.push(ROUTES.assign)}
+              >
+                <span>Assign competencies</span>
+                <span className="text-xs text-muted-foreground">
+                  Staff &amp; roles
+                </span>
+              </Button>
+
+              <Button
+                variant="secondary"
+                className="w-full justify-between"
+                onClick={() => router.push(ROUTES.surveyPocs)}
+              >
+                <span>Survey &amp; POCs</span>
+                <span className="text-xs text-muted-foreground">
+                  Tags &amp; corrections
+                </span>
+              </Button>
+            </div>
+          </Card>
         </div>
-      </div>
-
-      {/* MAIN GRID */}
-      <div className="grid gap-6 lg:grid-cols-[2.1fr,1.3fr]">
-        {/* LEFT: Snapshot */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                Current Facility Snapshot
-              </p>
-              <p className="mt-1 text-[12px] text-slate-500">
-                Overview for your currently selected facility.
-              </p>
-            </div>
-            <button
-              className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1.5 text-[11px] text-slate-100 hover:border-emerald-500/60"
-              onClick={() => router.push(ROUTES.reports)}
-            >
-              View full report
-            </button>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            {/* Overdue */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-              <p className="text-[11px] font-medium text-slate-300">
-                Competencies overdue
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-red-400">18</p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Staff are past due on these items.
-              </p>
-            </div>
-
-            {/* Due this month */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-              <p className="text-[11px] font-medium text-slate-300">
-                Due this month
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-amber-300">42</p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Items coming due in the next 30 days.
-              </p>
-            </div>
-
-            {/* On track */}
-            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3">
-              <p className="text-[11px] font-medium text-slate-300">
-                On track
-              </p>
-              <p className="mt-3 text-2xl font-semibold text-emerald-400">
-                86%
-              </p>
-              <p className="mt-1 text-[11px] text-slate-500">
-                Staff who are fully up to date.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* RIGHT: Quick actions */}
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Quick actions
-          </p>
-
-          <div className="mt-4 space-y-3 text-sm">
-            <button
-              className="flex w-full items-center justify-between rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-slate-950 hover:bg-emerald-400"
-              onClick={handleCreateCompetency}
-            >
-              <span>Create competency</span>
-              <span className="text-xs">↗</span>
-            </button>
-
-            <button
-              className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 hover:border-emerald-500/60"
-              onClick={handleAiBuilder}
-            >
-              <span>AI Builder</span>
-              <span className="text-xs text-slate-400">Draft with AI</span>
-            </button>
-
-            <button
-              className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 hover:border-emerald-500/60"
-              onClick={handleAssignCompetencies}
-            >
-              <span>Assign competencies</span>
-              <span className="text-xs text-slate-400">Staff &amp; roles</span>
-            </button>
-
-            {/* 🔹 NEW Quick Action: Survey & POCs */}
-            <button
-              className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-100 hover:border-emerald-500/60"
-              onClick={handleSurveyPocs}
-            >
-              <span>Survey &amp; POCs</span>
-              <span className="text-xs text-slate-400">Tags &amp; corrections</span>
-            </button>
-          </div>
-        </section>
       </div>
     </div>
   );

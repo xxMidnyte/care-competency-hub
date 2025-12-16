@@ -1,3 +1,4 @@
+// app/dashboard/tracks/[trackId]/assign/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -17,7 +18,7 @@ type StaffMember = {
 
 type Track = {
   id: string;
-  name: string | null;
+  title: string | null;
   description: string | null;
 };
 
@@ -35,9 +36,7 @@ export default function AssignTrackPage() {
   const [track, setTrack] = useState<Track | null>(null);
 
   const [facilities, setFacilities] = useState<Facility[]>([]);
-  const [selectedFacilityId, setSelectedFacilityId] = useState<string | "">(
-    ""
-  );
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string | "">("");
 
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [selectedStaffId, setSelectedStaffId] = useState<string | "">("");
@@ -68,7 +67,10 @@ export default function AssignTrackPage() {
 
       const {
         data: { user },
+        error: userErr,
       } = await supabase.auth.getUser();
+
+      if (userErr) console.error("auth.getUser error:", userErr);
 
       if (!user) {
         router.push("/login");
@@ -82,6 +84,7 @@ export default function AssignTrackPage() {
         .maybeSingle();
 
       if (profError || !profile?.org_id) {
+        console.error("Profile load error:", profError);
         setError("Unable to load your organization.");
         setLoading(false);
         return;
@@ -90,10 +93,10 @@ export default function AssignTrackPage() {
       const currentOrg = profile.org_id as string;
       setOrgId(currentOrg);
 
-      // Track details (adjust table/column names if needed)
+      // Track details
       const { data: trackRow, error: trackError } = await supabase
-        .from("tracks") // <-- if your table is named differently, change this
-        .select("id, name, description")
+        .from("tracks")
+        .select("id, title, description")
         .eq("id", trackId)
         .maybeSingle();
 
@@ -159,17 +162,38 @@ export default function AssignTrackPage() {
 
     setSaving(true);
 
-    const { error } = await supabase
+    // Prevent duplicates (active assignment exists)
+    const { data: existing, error: existErr } = await supabase
       .from("track_assignments")
-      .insert({
-        org_id: orgId,
-        facility_id: selectedFacilityId,
-        staff_id: selectedStaffId,
-        track_id: trackId,
-        status: "assigned",
-        due_date: null,
-        completed_at: null,
-      });
+      .select("id, status")
+      .eq("org_id", orgId)
+      .eq("track_id", trackId)
+      .eq("staff_id", selectedStaffId)
+      .in("status", ["assigned", "in_progress"])
+      .maybeSingle();
+
+    if (existErr) {
+      console.error("Existing assignment check error:", existErr);
+      flashMessage("error", "Could not validate existing assignments.");
+      setSaving(false);
+      return;
+    }
+
+    if (existing?.id) {
+      flashMessage("error", "This staff member is already assigned to this track.");
+      setSaving(false);
+      return;
+    }
+
+    const { error } = await supabase.from("track_assignments").insert({
+      org_id: orgId,
+      facility_id: selectedFacilityId,
+      staff_id: selectedStaffId,
+      track_id: trackId,
+      status: "assigned",
+      due_date: null,
+      completed_at: null,
+    });
 
     if (error) {
       console.error("Track assign error:", error);
@@ -178,31 +202,34 @@ export default function AssignTrackPage() {
       return;
     }
 
-    flashMessage("success", "Track assigned to staff member.");
+    flashMessage(
+      "success",
+      `Assigned “${track?.title ?? "track"}” to staff member.`
+    );
     setSaving(false);
   }
 
+  const pageTitle = track?.title ? `Assign: ${track.title}` : "Assign track";
+
   return (
     <div className="space-y-6 px-6 py-8">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Assign track
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Assign{" "}
-            <span className="font-semibold text-slate-100">
-              {track?.name || "this track"}
-            </span>{" "}
-            to a staff member.
+      {/* Top header with title */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/60">
+            Tracks
+          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">{pageTitle}</h1>
+          <p className="text-sm text-foreground/60">
+            Choose a facility and staff member to assign this track.
           </p>
         </div>
 
-        {track && (
+        {trackId && (
           <button
             type="button"
             onClick={() => router.push(`/dashboard/tracks/${trackId}`)}
-            className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:border-emerald-500 hover:text-emerald-300"
+            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90"
           >
             Back to track
           </button>
@@ -210,30 +237,30 @@ export default function AssignTrackPage() {
       </div>
 
       {error && (
-        <div className="rounded-md border border-rose-500/40 bg-rose-950/60 px-3 py-2 text-sm text-rose-100">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
         </div>
       )}
       {success && (
-        <div className="rounded-md border border-emerald-500/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-100">
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
           {success}
         </div>
       )}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-6 text-sm text-slate-400">
+        <div className="rounded-2xl border border-border bg-card px-4 py-6 text-sm text-foreground/60 shadow-card">
           Loading track details…
         </div>
       ) : (
-        <div className="max-w-xl space-y-4 rounded-xl border border-slate-800 bg-slate-950 px-4 py-5">
+        <div className="max-w-xl space-y-4 rounded-2xl border border-border bg-card p-5 shadow-card">
           <div className="space-y-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/60">
               Facility
             </label>
             <select
               value={selectedFacilityId}
               onChange={(e) => setSelectedFacilityId(e.target.value)}
-              className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 shadow-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]"
             >
               <option value="">Select a facility…</option>
               {facilities.map((f) => (
@@ -245,14 +272,14 @@ export default function AssignTrackPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium uppercase tracking-wide text-slate-400">
+            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/60">
               Staff member
             </label>
             <select
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
               disabled={!selectedFacilityId || staff.length === 0}
-              className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 shadow-sm outline-none disabled:cursor-not-allowed disabled:opacity-60 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none disabled:cursor-not-allowed disabled:opacity-60 focus:ring-2 focus:ring-[color:var(--color-ring)]"
             >
               {!selectedFacilityId ? (
                 <option value="">Select a facility first…</option>
@@ -282,7 +309,7 @@ export default function AssignTrackPage() {
                 !trackId
               }
               onClick={handleAssignTrack}
-              className="inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-emerald-50 shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background disabled:opacity-60"
             >
               {saving ? "Assigning…" : "Assign track"}
             </button>

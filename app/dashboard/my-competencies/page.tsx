@@ -1,10 +1,18 @@
-// app/dashboard/my-competencies/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { useOrg } from "@/hooks/useOrg";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Search,
+  ArrowRight,
+} from "lucide-react";
+
+/* ----------------------------- Types ----------------------------- */
 
 type StaffSelf = {
   id: string;
@@ -14,508 +22,336 @@ type StaffSelf = {
   facility_id: string | null;
 };
 
-type Assignment = {
+type DBAssignment = {
   id: string;
+  org_id: string;
+  staff_id: string;
   competency_id: string;
-  status: "assigned" | "completed" | string;
-  due_date: string | null;
+  due_date: string | null; // timestamptz
+  status: string | null;   // assigned | completed | etc
   completed_at: string | null;
 };
 
-type Competency = {
+type DBCompetency = {
   id: string;
   title: string | null;
+  risk_level: string | null;
   risk: string | null;
-  roles: string[] | null;
-  setting: string | null;
 };
 
-type AssignmentRow = {
-  assignment: Assignment;
-  competency: Competency | null;
+type Row = {
+  a: DBAssignment;
+  c: DBCompetency | null;
 };
+
+type StatusFilter =
+  | "all"
+  | "assigned"
+  | "completed"
+  | "overdue"
+  | "due_soon";
+
+/* ----------------------------- UI ----------------------------- */
+
+const ui = {
+  page: "min-h-screen bg-background text-foreground",
+  wrap: "mx-auto max-w-6xl space-y-6 px-6 py-8",
+  card: "rounded-2xl border border-border bg-card shadow-card",
+  label:
+    "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60",
+  h1: "text-2xl font-semibold tracking-tight",
+  h2: "text-sm font-semibold",
+  p: "text-sm text-foreground/60",
+  input:
+    "w-full rounded-full border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)]",
+  btnPrimary:
+    "inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card hover:opacity-90 disabled:opacity-60",
+  btnSoft:
+    "inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-xs font-semibold shadow-card hover:opacity-90",
+  msgErr:
+    "rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm",
+  msgOk:
+    "rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm",
+};
+
+const chipWrap =
+  "inline-flex rounded-full border border-border bg-muted p-1 text-xs";
+const chipBtn =
+  "rounded-full px-3 py-1 transition hover:bg-muted";
+
+/* ----------------------------- Helpers ----------------------------- */
+
+function normalizeRisk(risk: string | null | undefined) {
+  const r = (risk || "").toLowerCase();
+  if (r === "critical") return "critical";
+  if (r === "high") return "high";
+  if (r === "medium") return "medium";
+  return "low";
+}
+
+function riskBadge(risk: string | null | undefined) {
+  const r = normalizeRisk(risk);
+  const base =
+    "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold";
+  const cls =
+    r === "critical"
+      ? "border-red-500/30 bg-red-500/10 text-red-300"
+      : r === "high"
+      ? "border-orange-500/30 bg-orange-500/10 text-orange-300"
+      : r === "medium"
+      ? "border-yellow-500/30 bg-yellow-500/10 text-yellow-200"
+      : "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+
+  return <span className={`${base} ${cls}`}>Risk: {r}</span>;
+}
+
+function toDateOnly(value: string | null | undefined) {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString().slice(0, 10);
+}
+
+function getDueState(due: string | null | undefined) {
+  const d0 = toDateOnly(due);
+  if (!d0) return "none";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const d = new Date(d0);
+  const diff =
+    (d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+
+  if (diff < 0) return "overdue";
+  if (diff <= 7) return "due_soon";
+  return "on_track";
+}
+
+function dueBadge(due: string | null | undefined, completed: boolean) {
+  if (completed) return null;
+  const s = getDueState(due);
+
+  if (s === "overdue") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-300">
+        <AlertTriangle className="mr-1 h-3 w-3" />
+        Overdue
+      </span>
+    );
+  }
+
+  if (s === "due_soon") {
+    return (
+      <span className="inline-flex items-center rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[11px] font-semibold text-yellow-200">
+        <Clock className="mr-1 h-3 w-3" />
+        Due soon
+      </span>
+    );
+  }
+
+  return null;
+}
+
+/* ----------------------------- Page ----------------------------- */
 
 export default function MyCompetenciesPage() {
   const router = useRouter();
-  const { loading: orgLoading, org, organizationId } = useOrg();
+  const { loading: orgLoading, organizationId } = useOrg();
 
+  const [staff, setStaff] = useState<StaffSelf | null>(null);
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const [staff, setStaff] = useState<StaffSelf | null>(null);
-  const [rows, setRows] = useState<AssignmentRow[]>([]);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<StatusFilter>("all");
 
-  const userRole =
-    (org?.role as "admin" | "manager" | "staff" | string | null) ?? "staff";
-
-  // Helper: flash message
-  function flashMessage(
-    type: "error" | "success",
-    message: string,
-    timeout = 3000
-  ) {
-    if (type === "error") {
-      setError(message);
-      setSuccess(null);
-    } else {
-      setSuccess(message);
-      setError(null);
-    }
-    setTimeout(() => {
-      setError(null);
-      setSuccess(null);
-    }, timeout);
-  }
-
-  // 1) Auth + load staff record (by org + email)
+  /* ---------- Load staff ---------- */
   useEffect(() => {
-    async function init() {
-      if (orgLoading) return;
+    if (orgLoading) return;
 
-      setLoading(true);
+    async function loadStaff() {
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user?.email) return router.push("/login");
 
-      if (!organizationId || !org) {
-        setError("Unable to load your organization.");
-        setLoading(false);
-        return;
-      }
-
-      const {
-        data: { user },
-        error: userErr,
-      } = await supabase.auth.getUser();
-
-      if (userErr || !user) {
-        console.error("Auth error:", userErr);
-        router.push("/login");
-        return;
-      }
-
-      const email = user.email;
-      if (!email) {
-        setError(
-          "Your account does not have an email address. Please contact support."
-        );
-        setLoading(false);
-        return;
-      }
-
-      const { data: staffRow, error: staffErr } = await supabase
+      const { data: staffRow } = await supabase
         .from("staff_members")
         .select("id, full_name, email, org_id, facility_id")
-        .eq("org_id", organizationId)
-        .eq("email", email)
+        .eq("org_id", organizationId!)
+        .eq("email", data.user.email)
         .maybeSingle();
 
-      if (staffErr) {
-        console.error("Staff lookup error:", staffErr);
-        setError("Unable to load your staff profile.");
-        setLoading(false);
-        return;
-      }
-
-      if (!staffRow) {
-        setError(
-          "We couldn't find a staff profile linked to your account. Please contact your manager."
-        );
-        setLoading(false);
-        return;
-      }
-
-      setStaff(staffRow as StaffSelf);
-      setLoading(false);
+      setStaff(staffRow || null);
     }
 
-    init();
-  }, [orgLoading, org, organizationId, router]);
+    loadStaff();
+  }, [orgLoading, organizationId, router]);
 
-  // 2) Load assignments + competencies when staff is ready
+  /* ---------- Load assignments ---------- */
   useEffect(() => {
     if (!staff) return;
 
-    async function loadAssignments(currentStaff: StaffSelf) {
+    async function load() {
       setLoading(true);
-      setRows([]);
 
-      const { data: assignments, error: assignErr } = await supabase
+      const { data: assigns } = await supabase
         .from("competency_assignments")
-        .select("id, competency_id, status, due_date, completed_at")
-        .eq("staff_id", currentStaff.id)
-        .eq("org_id", currentStaff.org_id)
-        .order("due_date", { ascending: true });
+        .select("id, org_id, staff_id, competency_id, due_date, status, completed_at")
+        .eq("staff_id", staff.id)
+        .order("due_date");
 
-      if (assignErr) {
-        console.error("Assignments load error:", assignErr);
-        setError("Unable to load your competencies.");
-        setLoading(false);
-        return;
-      }
-
-      if (!assignments || assignments.length === 0) {
+      if (!assigns || assigns.length === 0) {
         setRows([]);
         setLoading(false);
         return;
       }
 
-      const competencyIds = Array.from(
-        new Set(assignments.map((a: any) => a.competency_id))
+      const ids = [...new Set(assigns.map((a) => a.competency_id))];
+
+      const { data: comps } = await supabase
+        .from("competency_templates")
+        .select("id, title, risk_level, risk")
+        .in("id", ids);
+
+      const map = new Map(comps?.map((c) => [c.id, c]) ?? []);
+
+      setRows(
+        assigns.map((a) => ({
+          a,
+          c: map.get(a.competency_id) ?? null,
+        }))
       );
 
-      const { data: competencies, error: compErr } = await supabase
-        .from("competency_templates")
-        .select("id, title, risk, roles, setting")
-        .in("id", competencyIds);
-
-      if (compErr) {
-        console.error("Competencies load error:", compErr);
-        setError("Unable to load competency details.");
-        setLoading(false);
-        return;
-      }
-
-      const compById = new Map<string, Competency>();
-      (competencies || []).forEach((c: any) => {
-        compById.set(c.id, c as Competency);
-      });
-
-      const merged: AssignmentRow[] = (assignments || []).map((a: any) => ({
-        assignment: a as Assignment,
-        competency: compById.get(a.competency_id) || null,
-      }));
-
-      setRows(merged);
       setLoading(false);
     }
 
-    // Pass staff as an argument so TS knows it's non-null inside
-    loadAssignments(staff);
+    load();
   }, [staff]);
 
-  // 3) Derived progress metrics (includes dueSoon)
-  const progress = useMemo(() => {
-    if (!rows.length) {
-      return {
-        total: 0,
-        completed: 0,
-        overdue: 0,
-        dueSoon: 0,
-      };
-    }
+  /* ---------- Derived ---------- */
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return rows.filter(({ a, c }) => {
+      const completed = a.status === "completed";
+      const dueState = getDueState(a.due_date);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+      if (filter === "assigned" && completed) return false;
+      if (filter === "completed" && !completed) return false;
+      if (filter === "overdue" && dueState !== "overdue") return false;
+      if (filter === "due_soon" && dueState !== "due_soon") return false;
 
-    let total = rows.length;
-    let completed = 0;
-    let overdue = 0;
-    let dueSoon = 0;
+      return !q || `${c?.title ?? ""}`.toLowerCase().includes(q);
+    });
+  }, [rows, search, filter]);
 
-    for (const row of rows) {
-      const a = row.assignment;
-      if (a.status === "completed") {
-        completed += 1;
-        continue;
-      }
-
-      if (a.due_date) {
-        const due = new Date(a.due_date);
-        due.setHours(0, 0, 0, 0);
-
-        const diffDays = Math.round(
-          (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        if (due < today) overdue += 1;
-        else if (diffDays >= 0 && diffDays <= 7) dueSoon += 1;
-      }
-    }
-
-    return { total, completed, overdue, dueSoon };
-  }, [rows]);
-
-  const assignedActive = progress.total - progress.completed;
-
-  // 4) Mark as complete
-  async function handleMarkComplete(assignmentId: string) {
-    if (!assignmentId) return;
-
+  /* ---------- Complete ---------- */
+  async function markComplete(id: string) {
     setSaving(true);
-
     const now = new Date().toISOString();
 
-    const { data, error: updateErr } = await supabase
+    const { error } = await supabase
       .from("competency_assignments")
       .update({ status: "completed", completed_at: now })
-      .eq("id", assignmentId)
-      .select("id, competency_id, status, due_date, completed_at")
-      .single();
+      .eq("id", id);
 
-    if (updateErr) {
-      console.error("Mark complete error:", updateErr);
-      flashMessage("error", "Something went wrong marking this complete.");
-      setSaving(false);
-      return;
+    if (!error) {
+      setRows((r) =>
+        r.map((x) =>
+          x.a.id === id ? { ...x, a: { ...x.a, status: "completed", completed_at: now } } : x
+        )
+      );
+      setSuccess("Marked as completed.");
     }
 
-    setRows((prev) =>
-      prev.map((row) =>
-        row.assignment.id === assignmentId
-          ? { ...row, assignment: data as Assignment }
-          : row
-      )
-    );
-
-    flashMessage("success", "Marked as completed.");
     setSaving(false);
   }
 
-  // Risk badge
-  function riskBadge(risk: string | null) {
-    if (!risk) return null;
-    const base =
-      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
-    const color =
-      risk === "Critical"
-        ? "bg-red-500/10 text-red-400 border border-red-500/40"
-        : risk === "High"
-        ? "bg-orange-500/10 text-orange-400 border border-orange-500/40"
-        : risk === "Medium"
-        ? "bg-yellow-500/10 text-yellow-300 border border-yellow-500/40"
-        : "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40";
-    return <span className={`${base} ${color}`}>{risk}</span>;
-  }
+  /* ---------- Render ---------- */
 
-  // Status badge
-  function statusBadge(a: Assignment) {
-    const isCompleted = a.status === "completed";
-    const base =
-      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium";
-    const color = isCompleted
-      ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40"
-      : "bg-sky-500/10 text-sky-300 border border-sky-500/40";
-
+  if (loading) {
     return (
-      <span className={`${base} ${color}`}>
-        {isCompleted ? "Completed" : "Assigned"}
-      </span>
-    );
-  }
-
-  // ----- RENDER -----
-
-  if (orgLoading || loading) {
-    return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="px-6 py-8 text-sm text-slate-400">
-          Loading your competencies…
+      <div className={ui.page}>
+        <div className={ui.wrap}>
+          <div className={`${ui.card} p-5`}>Loading your competencies…</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-        {/* Header */}
-        <div className="flex items-baseline justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              My competencies
-            </h1>
-            <p className="mt-1 text-sm text-slate-400">
-              See what&apos;s assigned to you, track due dates, and mark
-              competencies as completed.
-            </p>
+    <div className={ui.page}>
+      <div className={ui.wrap}>
+        <h1 className={ui.h1}>My competencies</h1>
+
+        {/* Filters */}
+        <div className="flex justify-between">
+          <div className={chipWrap}>
+            {["all", "assigned", "due_soon", "overdue", "completed"].map((k) => (
+              <button
+                key={k}
+                className={`${chipBtn} ${filter === k ? "bg-card" : ""}`}
+                onClick={() => setFilter(k as StatusFilter)}
+              >
+                {k.replace("_", " ")}
+              </button>
+            ))}
           </div>
 
-          {staff && (
-            <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-3 py-2 text-right text-[11px] text-slate-400">
-              <div className="text-[var(--foreground)] font-medium">
-                {staff.full_name || staff.email || "Staff member"}
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.14em] text-slate-500">
-                {userRole || "staff"}
-              </div>
-            </div>
-          )}
+          <input
+            className={ui.input}
+            placeholder="Search…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
-        {/* Messages */}
-        {error && (
-          <div className="rounded-md border border-red-500/40 bg-red-950/60 px-3 py-2 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="rounded-md border border-emerald-500/40 bg-emerald-950/60 px-3 py-2 text-sm text-emerald-200">
-            {success}
-          </div>
-        )}
+        {/* List */}
+        <div className="space-y-3">
+          {filtered.map(({ a, c }) => {
+            const completed = a.status === "completed";
+            const risk = c?.risk_level ?? c?.risk;
 
-        {/* Summary cards */}
-        {!error && (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <SummaryCard
-              label="Assigned"
-              value={assignedActive}
-              sub="Currently on your plate"
-            />
-            <SummaryCard
-              label="Completed"
-              value={progress.completed}
-              sub="Marked as finished"
-            />
-            <SummaryCard
-              label="Overdue"
-              value={progress.overdue}
-              sub="Past due date"
-              tone="danger"
-            />
-            <SummaryCard
-              label="Due soon"
-              value={progress.dueSoon}
-              sub="Within the next 7 days"
-              tone="warn"
-            />
-          </div>
-        )}
+            return (
+              <div key={a.id} className={`${ui.card} p-4`}>
+                <div className="flex justify-between">
+                  <div>
+                    <div className="font-semibold">{c?.title}</div>
+                    <div className="mt-1 flex gap-2">
+                      {riskBadge(risk)}
+                      {dueBadge(a.due_date, completed)}
+                    </div>
+                  </div>
 
-        {/* Assignments table */}
-        <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
-          <div className="flex items-center justify-between border-b border-slate-800 bg-[var(--surface)] px-4 py-3">
-            <div>
-              <h2 className="text-sm font-medium">Assigned competencies</h2>
-              <p className="text-xs text-slate-400">
-                Mark items as completed once you&apos;ve finished the required
-                training or skills validation.
-              </p>
-            </div>
-            {saving && (
-              <span className="text-xs text-emerald-300/80">Saving…</span>
-            )}
-          </div>
+                  <div className="flex gap-2">
+                    <button
+                      className={ui.btnSoft}
+                      onClick={() =>
+                        router.push(`/dashboard/library/${a.competency_id}`)
+                      }
+                    >
+                      View <ArrowRight className="h-4 w-4" />
+                    </button>
 
-          {rows.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-slate-400">
-              You don&apos;t have any competencies assigned yet.
-            </div>
-          ) : (
-            <div className="max-h-[520px] overflow-auto">
-              <table className="min-w-full text-sm">
-                <thead className="sticky top-0 bg-[var(--surface)] backdrop-blur">
-                  <tr className="border-b border-slate-900/60 text-xs uppercase tracking-wide text-slate-400">
-                    <th className="px-4 py-2 text-left font-medium">Title</th>
-                    <th className="px-4 py-2 text-left font-medium">Risk</th>
-                    <th className="px-4 py-2 text-left font-medium">Status</th>
-                    <th className="px-4 py-2 text-left font-medium">
-                      Due date
-                    </th>
-                    <th className="px-4 py-2 text-right font-medium">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const { assignment, competency } = row;
-                    const isCompleted = assignment.status === "completed";
-                    const due =
-                      assignment.due_date &&
-                      assignment.due_date.slice(0, 10);
-
-                    return (
-                      <tr
-                        key={assignment.id}
-                        className="border-b border-slate-900/60"
+                    {!completed && (
+                      <button
+                        className={ui.btnPrimary}
+                        disabled={saving}
+                        onClick={() => markComplete(a.id)}
                       >
-                        <td className="px-4 py-3 align-top">
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {competency?.title ?? "Untitled competency"}
-                            </span>
-                            {competency?.roles &&
-                              competency.roles.length > 0 && (
-                                <span className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-500">
-                                  {competency.roles.join(", ")}
-                                </span>
-                              )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          {riskBadge(competency?.risk ?? null)}
-                        </td>
-                        <td className="px-4 py-3 align-top">
-                          {statusBadge(assignment)}
-                        </td>
-                        <td className="px-4 py-3 align-top text-xs text-slate-300">
-                          {due || "—"}
-                        </td>
-                        <td className="px-4 py-3 align-top text-right">
-                          {isCompleted ? (
-                            <span className="text-xs text-slate-500">
-                              Completed{" "}
-                              {assignment.completed_at
-                                ? assignment.completed_at.slice(0, 10)
-                                : ""}
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                handleMarkComplete(assignment.id)
-                              }
-                              className="inline-flex items-center rounded-md bg-emerald-500 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 focus:ring-offset-slate-950"
-                            >
-                              Mark complete
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                        <CheckCircle2 className="h-4 w-4" />
+                        Complete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </div>
-  );
-}
-
-type SummaryCardProps = {
-  label: string;
-  value: number;
-  sub?: string;
-  tone?: "default" | "warn" | "danger";
-};
-
-function SummaryCard({
-  label,
-  value,
-  sub,
-  tone = "default",
-}: SummaryCardProps) {
-  const base =
-    "rounded-xl border px-4 py-3 flex flex-col gap-1 bg-[var(--surface-soft)]";
-  const toneClasses =
-    tone === "danger"
-      ? "border-rose-500/60 bg-rose-500/10"
-      : tone === "warn"
-      ? "border-amber-500/60 bg-amber-500/10"
-      : "border-slate-800";
-
-  return (
-    <div className={`${base} ${toneClasses}`}>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
-      <span className="text-2xl font-semibold text-[var(--foreground)]">
-        {value}
-      </span>
-      {sub && <span className="text-xs text-slate-400">{sub}</span>}
     </div>
   );
 }

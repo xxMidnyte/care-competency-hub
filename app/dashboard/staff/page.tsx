@@ -33,10 +33,23 @@ type StaffMemberRow = {
   email: string | null;
 };
 
+// ---- UI tokens / helpers ----
+const card = "rounded-2xl border border-border bg-card shadow-card";
+const label =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60";
+const input =
+  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const btnSoft =
+  "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90";
+const btnPrimary =
+  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const btnSmallPrimary =
+  "inline-flex items-center justify-center rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-card transition hover:opacity-90";
+const btnIconDanger =
+  "inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background text-foreground/60 transition hover:border-red-500/50 hover:text-red-300 disabled:opacity-50";
+
 export default function StaffDashboardPage() {
   const router = useRouter();
-
-  // Org + role context
   const { loading: orgLoading, org, organizationId } = useOrg();
 
   const [loading, setLoading] = useState(true);
@@ -44,7 +57,6 @@ export default function StaffDashboardPage() {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Org staff management state
   const [staffLoading, setStaffLoading] = useState(false);
   const [staffError, setStaffError] = useState<string | null>(null);
   const [staffMembers, setStaffMembers] = useState<StaffMemberRow[]>([]);
@@ -53,7 +65,6 @@ export default function StaffDashboardPage() {
   const [addingStaff, setAddingStaff] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Manager / admin / dev can manage staff
   const showManageStaff = hasRoleAtLeast(org, "manager");
 
   async function loadStaffMembers(orgIdValue: string) {
@@ -79,13 +90,11 @@ export default function StaffDashboardPage() {
 
   useEffect(() => {
     async function load() {
-      // Wait for org context to resolve
       if (orgLoading) return;
 
       setLoading(true);
       setError(null);
 
-      // Require logged-in user
       const {
         data: { user },
         error: userError,
@@ -105,7 +114,6 @@ export default function StaffDashboardPage() {
         return;
       }
 
-      // Require organization context
       const orgIdValue = organizationId;
       if (!orgIdValue) {
         console.error("No organizationId in context");
@@ -114,7 +122,6 @@ export default function StaffDashboardPage() {
         return;
       }
 
-      // 1) Fetch progress from view
       const { data: progressRows, error: progressError } = await supabase
         .from("staff_competency_progress")
         .select("*")
@@ -132,7 +139,6 @@ export default function StaffDashboardPage() {
       const row = (progressRows && progressRows[0]) || null;
       setProgress(row as StaffProgressRow | null);
 
-      // 2) Fetch current assignments for this staff member (if any)
       if (row?.staff_id) {
         const { data: assignRows, error: assignError } = await supabase
           .from("staff_competency_assignments")
@@ -152,7 +158,6 @@ export default function StaffDashboardPage() {
         setAssignments([]);
       }
 
-      // 3) Load org staff list (for manager/admin/dev UI)
       if (showManageStaff) {
         await loadStaffMembers(orgIdValue);
       }
@@ -241,241 +246,216 @@ export default function StaffDashboardPage() {
   const isLoadingAny = loading || orgLoading;
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
-      {/* HEADER */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-50">
-            My competencies
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            See your overall completion and what’s coming due.
-          </p>
-        </div>
-
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="text-xs font-medium text-slate-400 hover:text-slate-100"
-        >
-          ← Back to main dashboard
-        </button>
-      </div>
-
-      {/* STATUS */}
-      {isLoadingAny && (
-        <div className="rounded-lg border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-200">
-          Loading your progress…
-        </div>
-      )}
-
-      {!isLoadingAny && error && (
-        <div className="rounded-lg border border-red-500/40 bg-red-950/40 p-4 text-sm text-red-200">
-          {error}
-        </div>
-      )}
-
-      {!isLoadingAny && !error && (
-        <>
-          {/* TOP ROW: SHIELD + STATS */}
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-            {/* Shield card */}
-            <div className="flex items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
-              <ProgressShield
-                value={completionRatio}
-                label="My competency status"
-                size={180}
-              />
-            </div>
-
-            {/* Stats card */}
-            <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/80 p-5">
-              <h2 className="text-sm font-semibold text-slate-100">Summary</h2>
-
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
-                  <p className="text-xs text-slate-400">Assigned</p>
-                  <p className="mt-1 text-2xl font-semibold text-slate-50">
-                    {totalAssigned}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Total competencies currently assigned to you.
-                  </p>
-                </div>
-                <div className="rounded-lg border border-slate-800 bg-slate-900/70 p-3">
-                  <p className="text-xs text-slate-400">Completed</p>
-                  <p className="mt-1 text-2xl font-semibold text-emerald-400">
-                    {totalCompleted}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-500">
-                    Completed and marked as done.
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-xs text-slate-500">
-                This shield updates automatically as your competencies are
-                marked completed.
-              </p>
-            </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+        {/* HEADER */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">My competencies</h1>
+            <p className="mt-1 text-sm text-foreground/60">
+              See your overall completion and what’s coming due.
+            </p>
           </div>
 
-          {/* ASSIGNMENT LIST */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950/80">
-            <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-              <h2 className="text-sm font-semibold text-slate-100">
-                My assignments
-              </h2>
-              <p className="text-xs text-slate-400">
-                {assignments.length} total
-              </p>
-            </div>
+          <button onClick={() => router.push("/dashboard")} className={btnSoft}>
+            ← Back to main dashboard
+          </button>
+        </div>
 
-            {assignments.length === 0 ? (
-              <div className="px-4 py-6 text-sm text-slate-400">
-                You have no competencies assigned right now.
-              </div>
-            ) : (
-              <div className="max-h-[420px] overflow-auto">
-                <table className="min-w-full table-fixed text-sm">
-                  <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Title</th>
-                      <th className="w-32 px-3 py-2 text-left">Status</th>
-                      <th className="w-32 px-3 py-2 text-left">Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800">
-                    {assignments.map((a) => (
-                      <tr key={a.id} className="hover:bg-slate-900/60">
-                        <td className="px-3 py-2 align-middle text-slate-100">
-                          {a.competency_title || "(Untitled competency)"}
-                        </td>
-                        <td className="px-3 py-2 align-middle text-slate-300">
-                          {a.status}
-                        </td>
-                        <td className="px-3 py-2 align-middle text-slate-300">
-                          {formatDate(a.due_date)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+        {/* STATUS */}
+        {isLoadingAny && (
+          <div className={`${card} p-4 text-sm text-foreground/70`}>
+            Loading your progress…
           </div>
+        )}
 
-          {/* ORG STAFF MANAGEMENT (manager/admin/dev) */}
-          {showManageStaff && (
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/80">
-              <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-                <h2 className="text-sm font-semibold text-slate-100">
-                  Organization staff
-                </h2>
-                <p className="text-xs text-slate-400">
-                  {staffMembers.length} total
+        {!isLoadingAny && error && (
+          <div className="rounded-2xl border border-red-500/40 bg-red-950/40 p-4 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
+        {!isLoadingAny && !error && (
+          <>
+            {/* TOP ROW: SHIELD + STATS */}
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+              <div className={`${card} flex items-center justify-center p-4`}>
+                <ProgressShield value={completionRatio} label="My competency status" size={180} />
+              </div>
+
+              <div className={`${card} p-5 space-y-4`}>
+                <h2 className="text-sm font-semibold">Summary</h2>
+
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className={label}>Assigned</p>
+                    <p className="mt-2 text-3xl font-semibold">{totalAssigned}</p>
+                    <p className="mt-1 text-xs text-foreground/60">
+                      Total competencies currently assigned to you.
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border bg-muted/40 p-3">
+                    <p className={label}>Completed</p>
+                    <p className="mt-2 text-3xl font-semibold text-emerald-300">
+                      {totalCompleted}
+                    </p>
+                    <p className="mt-1 text-xs text-foreground/60">
+                      Completed and marked as done.
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-foreground/60">
+                  This shield updates automatically as your competencies are marked completed.
                 </p>
               </div>
-
-              <div className="space-y-3 px-4 py-4">
-                {/* Add staff form */}
-                <form
-                  onSubmit={handleAddStaff}
-                  className="flex flex-col gap-2 rounded-lg border border-slate-800 bg-slate-950/90 p-3 md:flex-row md:items-center"
-                >
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[11px] font-medium text-slate-300">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      value={newStaffName}
-                      onChange={(e) => setNewStaffName(e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-emerald-500"
-                      placeholder="e.g., Alex Johnson"
-                    />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <label className="text-[11px] font-medium text-slate-300">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={newStaffEmail}
-                      onChange={(e) => setNewStaffEmail(e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-emerald-500"
-                      placeholder="name@example.com"
-                    />
-                  </div>
-                  <div className="mt-2 md:mt-5">
-                    <button
-                      type="submit"
-                      disabled={addingStaff || !organizationId}
-                      className="w-full rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {addingStaff ? "Adding…" : "Add staff"}
-                    </button>
-                  </div>
-                </form>
-
-                {staffError && (
-                  <p className="text-xs text-red-400">{staffError}</p>
-                )}
-
-                {/* Staff table */}
-                {staffLoading ? (
-                  <div className="py-4 text-sm text-slate-400">
-                    Loading staff list…
-                  </div>
-                ) : staffMembers.length === 0 ? (
-                  <div className="py-4 text-sm text-slate-400">
-                    No staff members found yet. Add your first team member
-                    above.
-                  </div>
-                ) : (
-                  <div className="max-h-[420px] overflow-auto rounded-lg border border-slate-800">
-                    <table className="min-w-full table-fixed text-sm">
-                      <thead className="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
-                        <tr>
-                          <th className="px-3 py-2 text-left">Name</th>
-                          <th className="px-3 py-2 text-left">Email</th>
-                          <th className="w-16 px-3 py-2 text-right"></th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800">
-                        {staffMembers.map((s) => (
-                          <tr key={s.id} className="hover:bg-slate-900/60">
-                            <td className="px-3 py-2 align-middle text-slate-100">
-                              {s.full_name || "(Unnamed staff)"}
-                            </td>
-                            <td className="px-3 py-2 align-middle text-slate-300">
-                              {s.email || "No email"}
-                            </td>
-                            <td className="px-3 py-2 text-right align-middle">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteStaff(s.id)}
-                                disabled={deletingId === s.id}
-                                className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 text-slate-400 hover:border-red-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-60"
-                                title="Remove staff member"
-                              >
-                                {deletingId === s.id ? (
-                                  <span className="text-[10px]">…</span>
-                                ) : (
-                                  <span aria-hidden="true">🗑️</span>
-                                )}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
             </div>
-          )}
-        </>
-      )}
+
+            {/* ASSIGNMENT LIST */}
+            <div className={card}>
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h2 className="text-sm font-semibold">My assignments</h2>
+                <p className="text-xs text-foreground/60">{assignments.length} total</p>
+              </div>
+
+              {assignments.length === 0 ? (
+                <div className="px-4 py-6 text-sm text-foreground/60">
+                  You have no competencies assigned right now.
+                </div>
+              ) : (
+                <div className="max-h-[420px] overflow-auto">
+                  <table className="min-w-full table-fixed text-sm">
+                    <thead className="sticky top-0 bg-card/95 backdrop-blur text-xs uppercase tracking-wide text-foreground/60">
+                      <tr className="border-b border-border">
+                        <th className="px-3 py-2 text-left font-semibold">Title</th>
+                        <th className="w-32 px-3 py-2 text-left font-semibold">Status</th>
+                        <th className="w-32 px-3 py-2 text-left font-semibold">Due</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {assignments.map((a) => (
+                        <tr key={a.id} className="hover:bg-muted/40">
+                          <td className="px-3 py-2 align-middle font-semibold">
+                            {a.competency_title || "(Untitled competency)"}
+                          </td>
+                          <td className="px-3 py-2 align-middle">
+                            <span className={pill}>{a.status}</span>
+                          </td>
+                          <td className="px-3 py-2 align-middle text-foreground/70">
+                            {formatDate(a.due_date)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* ORG STAFF MANAGEMENT */}
+            {showManageStaff && (
+              <div className={card}>
+                <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                  <h2 className="text-sm font-semibold">Organization staff</h2>
+                  <p className="text-xs text-foreground/60">{staffMembers.length} total</p>
+                </div>
+
+                <div className="space-y-3 px-4 py-4">
+                  <form
+                    onSubmit={handleAddStaff}
+                    className="grid gap-3 rounded-2xl border border-border bg-muted/30 p-4 md:grid-cols-[1fr_1fr_auto]"
+                  >
+                    <div className="space-y-1">
+                      <label className={label}>Name</label>
+                      <input
+                        type="text"
+                        value={newStaffName}
+                        onChange={(e) => setNewStaffName(e.target.value)}
+                        className={input}
+                        placeholder="e.g., Alex Johnson"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className={label}>Email</label>
+                      <input
+                        type="email"
+                        value={newStaffEmail}
+                        onChange={(e) => setNewStaffEmail(e.target.value)}
+                        className={input}
+                        placeholder="name@example.com"
+                      />
+                    </div>
+
+                    <div className="flex items-end">
+                      <button
+                        type="submit"
+                        disabled={addingStaff || !organizationId}
+                        className={btnSmallPrimary}
+                      >
+                        {addingStaff ? "Adding…" : "Add staff"}
+                      </button>
+                    </div>
+                  </form>
+
+                  {staffError && (
+                    <p className="text-sm text-red-200">{staffError}</p>
+                  )}
+
+                  {staffLoading ? (
+                    <div className="py-4 text-sm text-foreground/60">
+                      Loading staff list…
+                    </div>
+                  ) : staffMembers.length === 0 ? (
+                    <div className="py-4 text-sm text-foreground/60">
+                      No staff members found yet. Add your first team member above.
+                    </div>
+                  ) : (
+                    <div className="max-h-[420px] overflow-auto rounded-2xl border border-border">
+                      <table className="min-w-full table-fixed text-sm">
+                        <thead className="sticky top-0 bg-card/95 backdrop-blur text-xs uppercase tracking-wide text-foreground/60">
+                          <tr className="border-b border-border">
+                            <th className="px-3 py-2 text-left font-semibold">Name</th>
+                            <th className="px-3 py-2 text-left font-semibold">Email</th>
+                            <th className="w-16 px-3 py-2 text-right font-semibold"></th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {staffMembers.map((s) => (
+                            <tr key={s.id} className="hover:bg-muted/40">
+                              <td className="px-3 py-2 align-middle font-semibold">
+                                {s.full_name || "(Unnamed staff)"}
+                              </td>
+                              <td className="px-3 py-2 align-middle text-foreground/70">
+                                {s.email || "No email"}
+                              </td>
+                              <td className="px-3 py-2 text-right align-middle">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteStaff(s.id)}
+                                  disabled={deletingId === s.id}
+                                  className={btnIconDanger}
+                                  title="Remove staff member"
+                                >
+                                  {deletingId === s.id ? (
+                                    <span className="text-[10px]">…</span>
+                                  ) : (
+                                    <span aria-hidden="true">🗑️</span>
+                                  )}
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

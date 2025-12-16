@@ -1,3 +1,4 @@
+// app/dashboard/settings/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,6 +17,17 @@ type AiPrefs = {
   showAiExplanationsToStaff: boolean;
   labsEnabled: boolean;
 };
+
+const card = "rounded-2xl border border-border bg-card shadow-card p-4";
+const label =
+  "block text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60";
+const helper = "mt-1 text-xs text-foreground/60";
+const input =
+  "mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const inputReadOnly =
+  "mt-1 w-full cursor-not-allowed rounded-xl border border-border bg-muted px-3 py-2 text-sm text-foreground/60";
+const primaryBtn =
+  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
 
 export default function SettingsPage() {
   const [loadingUser, setLoadingUser] = useState(true);
@@ -41,7 +53,6 @@ export default function SettingsPage() {
     labsEnabled: true,
   });
 
-  // Load user basics for the header
   useEffect(() => {
     async function loadUser() {
       const {
@@ -52,10 +63,7 @@ export default function SettingsPage() {
         setEmail(user.email ?? null);
         const meta = (user.user_metadata || {}) as any;
         setDisplayName(
-          meta.full_name ||
-            meta.name ||
-            user.email?.split("@")[0] ||
-            "Manager"
+          meta.full_name || meta.name || user.email?.split("@")[0] || "Manager"
         );
         setRoleTitle(meta.role_title || "Manager");
       }
@@ -67,7 +75,6 @@ export default function SettingsPage() {
   }, []);
 
   const handleSave = () => {
-    // later: persist to Supabase profile/settings table
     alert("Settings UI wired — persistence coming later 😎");
   };
 
@@ -76,32 +83,28 @@ export default function SettingsPage() {
   };
 
   const toggleAiPref = (key: keyof AiPrefs) => {
-    // prevent turning off PHI protection for now
     if (key === "hidePhiInPrompts" && aiPrefs.hidePhiInPrompts) {
-      alert(
-        "For the MVP, PHI protection is always on. We can revisit this later."
-      );
+      alert("For the MVP, PHI protection is always on. We can revisit this later.");
       return;
     }
     setAiPrefs((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-6 py-4 space-y-6">
       {/* HEADER */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-50">Settings</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">
+            Settings
+          </h1>
+          <p className="mt-1 text-sm text-foreground/60">
             Manage your account, defaults, and notification preferences for
             CareCompetencyHub.
           </p>
         </div>
 
-        <button
-          onClick={handleSave}
-          className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
-        >
+        <button onClick={handleSave} className={primaryBtn}>
           Save changes
         </button>
       </div>
@@ -110,52 +113,46 @@ export default function SettingsPage() {
         {/* LEFT COLUMN */}
         <div className="space-y-4">
           {/* Account */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <h2 className="text-sm font-semibold text-slate-100">
-              Account & identity
+          <section className={card}>
+            <h2 className="text-sm font-semibold text-foreground">
+              Account &amp; identity
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className={helper}>
               These settings apply to you as a manager, regardless of which
               facility you&apos;re viewing.
             </p>
 
             <div className="mt-4 space-y-3 text-sm">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-                  Display name
-                </label>
+                <label className={label}>Display name</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+                  className={input}
                   placeholder="How your name appears in the app"
                 />
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-                    Role / title
-                  </label>
+                  <label className={label}>Role / title</label>
                   <input
                     type="text"
                     value={roleTitle}
                     onChange={(e) => setRoleTitle(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+                    className={input}
                     placeholder="Ex: Clinical Manager, Rehab Director"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-                    Login email
-                  </label>
+                  <label className={label}>Login email</label>
                   <input
                     type="text"
                     value={loadingUser ? "Loading…" : email ?? "Not available"}
                     readOnly
-                    className="mt-1 w-full cursor-not-allowed rounded-lg border border-slate-800 bg-slate-950/80 px-3 py-2 text-sm text-slate-400"
+                    className={inputReadOnly}
                   />
                 </div>
               </div>
@@ -163,44 +160,40 @@ export default function SettingsPage() {
           </section>
 
           {/* Defaults */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <h2 className="text-sm font-semibold text-slate-100">
+          <section className={card}>
+            <h2 className="text-sm font-semibold text-foreground">
               Dashboard defaults
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className={helper}>
               Choose what you see by default when you open the manager
               dashboard.
             </p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2 text-sm">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-                  Default facility
-                </label>
+                <label className={label}>Default facility</label>
                 <select
                   value={defaultFacility}
                   onChange={(e) => setDefaultFacility(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+                  className={input}
                 >
                   <option>Auto-select</option>
                   <option>CareCompetencyHub Demo – Home Health</option>
                   <option>CareCompetencyHub Demo – SNF</option>
                   <option>Last used facility</option>
                 </select>
-                <p className="mt-1 text-[11px] text-slate-500">
+                <p className="mt-1 text-[11px] text-foreground/60">
                   Once we hook this to your real facilities list, this will
                   control which location loads first.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-                  Default discipline
-                </label>
+                <label className={label}>Default discipline</label>
                 <select
                   value={defaultDiscipline}
                   onChange={(e) => setDefaultDiscipline(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+                  className={input}
                 >
                   <option>All disciplines</option>
                   <option>Nursing only</option>
@@ -210,13 +203,11 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
-                  Timezone
-                </label>
+                <label className={label}>Timezone</label>
                 <select
                   value={timezone}
                   onChange={(e) => setTimezone(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-emerald-500 focus:outline-none"
+                  className={input}
                 >
                   <option value="America/Chicago">Central (US)</option>
                   <option value="America/New_York">Eastern (US)</option>
@@ -231,11 +222,11 @@ export default function SettingsPage() {
         {/* RIGHT COLUMN */}
         <div className="space-y-4">
           {/* Notifications */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <h2 className="text-sm font-semibold text-slate-100">
+          <section className={card}>
+            <h2 className="text-sm font-semibold text-foreground">
               Email notifications
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className={helper}>
               We&apos;ll never spam you — just the things that actually matter
               for your team.
             </p>
@@ -269,11 +260,11 @@ export default function SettingsPage() {
           </section>
 
           {/* AI & Labs */}
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-            <h2 className="text-sm font-semibold text-slate-100">
+          <section className={card}>
+            <h2 className="text-sm font-semibold text-foreground">
               AI &amp; privacy
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className={helper}>
               Control how AI features are used for your account. We never use
               these settings to override your organization&apos;s policies.
             </p>
@@ -323,18 +314,20 @@ function ToggleRow(props: {
   return (
     <div className="flex items-start justify-between gap-3">
       <div>
-        <p className="text-sm font-medium text-slate-100">{label}</p>
-        <p className="text-xs text-slate-500">{description}</p>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="text-xs text-foreground/60">{description}</p>
       </div>
+
       <button
         type="button"
         onClick={onChange}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-slate-700 transition ${
-          checked ? "bg-emerald-500/80" : "bg-slate-900"
-        }`}
+        aria-pressed={checked}
+        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full border border-border transition ${
+          checked ? "bg-primary/80" : "bg-muted"
+        } focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background`}
       >
         <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+          className={`inline-block h-4 w-4 transform rounded-full bg-background shadow-sm transition ${
             checked ? "translate-x-5" : "translate-x-1"
           }`}
         />

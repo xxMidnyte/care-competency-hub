@@ -1,7 +1,7 @@
 // app/dashboard/policies/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
@@ -38,6 +38,23 @@ const CATEGORY_OPTIONS = [
   "Other",
 ];
 
+const card = "rounded-2xl border border-border bg-card shadow-card";
+const cardInner = "p-4";
+const muted = "text-foreground/60";
+const label =
+  "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60";
+const input =
+  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const select =
+  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const chip = "rounded-full bg-muted px-2 py-1 text-[11px] text-foreground/70";
+const btnPrimary =
+  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const btnSoft =
+  "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const btnDangerSoft =
+  "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+
 export default function PoliciesPage() {
   const router = useRouter();
 
@@ -67,14 +84,12 @@ export default function PoliciesPage() {
     null
   );
 
-  // Map for facility id -> name
-  const facilityNameMap: Record<string, string> = facilities.reduce(
-    (acc, f) => {
+  const facilityNameMap = useMemo(() => {
+    return facilities.reduce((acc, f) => {
       if (f.id) acc[f.id] = f.name || "Unnamed facility";
       return acc;
-    },
-    {} as Record<string, string>
-  );
+    }, {} as Record<string, string>);
+  }, [facilities]);
 
   // Initial load: org context -> facilities + policies
   useEffect(() => {
@@ -90,17 +105,14 @@ export default function PoliciesPage() {
           return;
         }
 
-        // Feature gating: only dev orgs or orgs with policy module
         if (!hasModuleAccess) {
-          setError(
-            "The policy library is not enabled for your organization yet."
-          );
+          setError("The policy library is not enabled for your organization yet.");
           return;
         }
 
         setOrgId(organizationId);
 
-        // 1) Load facilities for this org
+        // 1) Facilities
         const { data: facilitiesData, error: facilitiesError } = await supabase
           .from("facilities")
           .select("id, name")
@@ -115,7 +127,7 @@ export default function PoliciesPage() {
 
         setFacilities(facilitiesData ?? []);
 
-        // 2) Initial policy load
+        // 2) Policies
         await fetchPolicies(organizationId, {
           facilityId: "all",
           category: "All",
@@ -153,14 +165,14 @@ export default function PoliciesPage() {
       const category =
         opts?.category && opts.category !== "All" ? opts.category : undefined;
       const q = opts?.search?.trim() || "";
-      const includeArchived = opts?.includeArchived ?? false;
+      const includeArch = opts?.includeArchived ?? false;
 
       const params = new URLSearchParams();
       params.set("orgId", currentOrgId);
       if (facilityId) params.set("facilityId", facilityId);
       if (category) params.set("category", category);
       if (q) params.set("q", q);
-      if (includeArchived) params.set("includeArchived", "true");
+      if (includeArch) params.set("includeArchived", "true");
 
       const res = await fetch(`/api/policies?${params.toString()}`);
 
@@ -206,18 +218,9 @@ export default function PoliciesPage() {
         .select("id, is_archived")
         .single();
 
-      console.log("Archive update result:", { data, error });
+      if (error) throw new Error(error.message || "Failed to update policy.");
+      if (!data) throw new Error("No data returned from archive update.");
 
-      if (error) {
-        console.error("Archive toggle supabase error:", error);
-        throw new Error(error.message || "Failed to update policy.");
-      }
-
-      if (!data) {
-        throw new Error("No data returned from archive update.");
-      }
-
-      // Update local list so UI reflects the change
       setPolicies((prev) =>
         prev.map((p) =>
           p.id === policy.id ? { ...p, is_archived: data.is_archived } : p
@@ -232,155 +235,156 @@ export default function PoliciesPage() {
   }
 
   // Loading wrapper
-  if (loading) {
+  if (loading || orgLoading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="px-4 py-6">
-          <p className="text-sm text-slate-400">Loading policies…</p>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="px-6 py-6 text-sm text-foreground/60">
+          Loading policies…
         </div>
       </div>
     );
   }
 
-  // Hard error (or module not enabled)
-  if (error && !loadingPolicies) {
+  // Hard errors only: missing org context OR module not enabled
+  if (!organizationId || !hasModuleAccess) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="px-4 py-6 space-y-3">
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="mx-auto max-w-6xl px-6 py-8 space-y-3">
           <h1 className="text-xl font-semibold">Policies</h1>
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-red-400">
+            {error ||
+              (!organizationId
+                ? "Unable to load your organization."
+                : "The policy library is not enabled for your organization yet.")}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="px-4 py-6 space-y-6 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
         {/* HEADER */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Policies</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="text-2xl font-semibold tracking-tight">Policies</h1>
+            <p className="mt-1 text-sm text-foreground/60">
               Store, search, and manage policies for your organization.
             </p>
           </div>
 
           {canManagePolicies && (
-            <Link
-              href="/dashboard/policies/new"
-              className="inline-flex items-center rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 transition"
-            >
-              <span className="mr-1">＋</span>
+            <Link href="/dashboard/policies/new" className={btnPrimary}>
+              <span className="mr-2">＋</span>
               Add policy
             </Link>
           )}
         </div>
 
+        {/* Non-hard error banner */}
+        {error && (
+          <div className="rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+            {error}
+          </div>
+        )}
+
         {/* FILTERS */}
-        <form
-          onSubmit={handleApplyFilters}
-          className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-800 bg-slate-900/40 p-3"
-        >
-          {/* Facility */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-400">
-              Facility
+        <form onSubmit={handleApplyFilters} className={`${card} ${cardInner}`}>
+          <div className="flex flex-wrap items-end gap-3">
+            {/* Facility */}
+            <div className="min-w-[180px] space-y-1">
+              <label className={label}>Facility</label>
+              <select
+                value={selectedFacilityId}
+                onChange={(e) => setSelectedFacilityId(e.target.value)}
+                className={select}
+              >
+                <option value="all">All facilities</option>
+                {facilities.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name || "Unnamed facility"}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Category */}
+            <div className="min-w-[180px] space-y-1">
+              <label className={label}>Category</label>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className={select}
+              >
+                {CATEGORY_OPTIONS.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Search */}
+            <div className="min-w-[220px] flex-1 space-y-1">
+              <label className={label}>Search</label>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search title or description…"
+                className={input}
+              />
+            </div>
+
+            {/* Include archived */}
+            <label className="flex items-center gap-2 text-sm text-foreground/70">
+              <input
+                type="checkbox"
+                checked={includeArchived}
+                onChange={(e) => setIncludeArchived(e.target.checked)}
+                className="h-4 w-4 rounded border-border bg-background"
+              />
+              Include archived
             </label>
-            <select
-              value={selectedFacilityId}
-              onChange={(e) => setSelectedFacilityId(e.target.value)}
-              className="min-w-[160px] rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+
+            {/* Apply */}
+            <button
+              type="submit"
+              className={btnSoft}
+              disabled={loadingPolicies}
             >
-              <option value="all">All facilities</option>
-              {facilities.map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.name || "Unnamed facility"}
-                </option>
-              ))}
-            </select>
+              {loadingPolicies ? "Updating…" : "Apply filters"}
+            </button>
           </div>
-
-          {/* Category */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-slate-400">
-              Category
-            </label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="min-w-[160px] rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            >
-              {CATEGORY_OPTIONS.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search */}
-          <div className="flex flex-1 flex-col gap-1 min-w-[200px]">
-            <label className="text-xs font-medium text-slate-400">
-              Search
-            </label>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search title or description…"
-              className="rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-          </div>
-
-          {/* Include archived */}
-          <label className="flex items-center gap-2 text-xs text-slate-400">
-            <input
-              type="checkbox"
-              checked={includeArchived}
-              onChange={(e) => setIncludeArchived(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-700 bg-slate-900 text-emerald-500 focus:ring-emerald-500"
-            />
-            Include archived
-          </label>
-
-          {/* Apply button */}
-          <button
-            type="submit"
-            className="ml-auto rounded-md border border-emerald-500 px-3 py-1.5 text-xs font-medium text-emerald-300 hover:bg-emerald-500/10 transition disabled:opacity-60"
-            disabled={loadingPolicies}
-          >
-            {loadingPolicies ? "Updating…" : "Apply filters"}
-          </button>
         </form>
 
         {/* LIST */}
-        <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-900/40">
-          {/* Simple header bar */}
-          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-            <span>Policies</span>
-            <span className="text-[10px] text-slate-500">
+        <div className={card}>
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <span className="text-sm font-semibold">Policies</span>
+            <span className="text-xs text-foreground/60">
               {policies.length} item{policies.length === 1 ? "" : "s"}
             </span>
           </div>
 
           {policies.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-slate-400">
+            <div className="px-4 py-8 text-sm text-foreground/60">
               No policies found. Try adjusting your filters or{" "}
               {canManagePolicies ? (
                 <Link
                   href="/dashboard/policies/new"
-                  className="text-emerald-400 underline-offset-2 hover:underline"
+                  className="text-primary underline underline-offset-4"
                 >
                   add your first policy
                 </Link>
               ) : (
-                "ask your administrator to add policies."
+                "ask your administrator to add policies"
               )}
               .
             </div>
           ) : (
-            <ul className="space-y-3 px-3 pb-3">
+            <ul className="space-y-3 p-3">
               {policies.map((policy) => {
                 const tagList = Array.isArray(policy.tags)
                   ? (policy.tags as string[])
@@ -392,58 +396,50 @@ export default function PoliciesPage() {
 
                 const updated = new Date(policy.updated_at);
 
-                const archiveLabel = policy.is_archived
-                  ? "Unarchive"
-                  : "Archive";
+                const archiveLabel = policy.is_archived ? "Unarchive" : "Archive";
                 const isArchiveBusy = archiveUpdatingId === policy.id;
 
                 return (
                   <li key={policy.id}>
                     <div
-                      className={`flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-900/70 px-4 py-3 text-sm shadow-sm transition hover:border-emerald-500/60 hover:bg-slate-900 ${
-                        policy.is_archived ? "opacity-60" : ""
+                      className={`rounded-2xl border border-border bg-card shadow-card p-4 transition hover:opacity-95 ${
+                        policy.is_archived ? "opacity-70" : ""
                       }`}
                     >
-                      {/* Top row: title + badges + chips */}
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <Link
                               href={`/dashboard/policies/${policy.id}`}
-                              className="font-medium text-slate-100 hover:text-emerald-300"
+                              className="text-base font-semibold text-foreground hover:opacity-90"
                             >
                               {policy.title}
                             </Link>
 
                             {policy.is_archived && (
-                              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-400">
+                              <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold uppercase text-foreground/60">
                                 Archived
                               </span>
                             )}
 
                             {policy.version_number > 1 && (
-                              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-emerald-300">
+                              <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase text-primary">
                                 v{policy.version_number}
                               </span>
                             )}
                           </div>
 
                           {policy.description && (
-                            <p className="text-xs text-slate-400 line-clamp-2">
+                            <p className="text-sm text-foreground/60 line-clamp-2">
                               {policy.description}
                             </p>
                           )}
                         </div>
 
-                        {/* Quick meta chips */}
-                        <div className="flex flex-wrap gap-2 text-[11px] text-slate-400">
-                          <span className="rounded-full bg-slate-800 px-2 py-0.5">
-                            {policy.category}
-                          </span>
-                          <span className="rounded-full bg-slate-800 px-2 py-0.5">
-                            {facilityName}
-                          </span>
-                          <span className="rounded-full bg-slate-800 px-2 py-0.5">
+                        <div className="flex flex-wrap gap-2 text-[11px]">
+                          <span className={chip}>{policy.category}</span>
+                          <span className={chip}>{facilityName}</span>
+                          <span className={chip}>
                             Updated{" "}
                             {updated.toLocaleDateString(undefined, {
                               month: "short",
@@ -454,34 +450,29 @@ export default function PoliciesPage() {
                         </div>
                       </div>
 
-                      {/* Tags row */}
                       {tagList.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
+                        <div className="mt-3 flex flex-wrap gap-2">
                           {tagList.map((tag) => (
-                            <span
-                              key={tag}
-                              className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-300"
-                            >
+                            <span key={tag} className={chip}>
                               {tag}
                             </span>
                           ))}
                         </div>
                       )}
 
-                      {/* Actions row */}
-                      <div className="flex flex-wrap items-center justify-end gap-2 pt-1 text-xs">
+                      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
                         <a
                           href={policy.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-md border border-slate-700 px-3 py-1 hover:border-emerald-500 hover:text-emerald-300 transition"
+                          className={btnSoft}
                         >
                           View PDF
                         </a>
 
                         <Link
                           href={`/dashboard/policies/${policy.id}`}
-                          className="rounded-md border border-slate-700 px-3 py-1 hover:border-emerald-500 hover:text-emerald-300 transition"
+                          className={btnSoft}
                         >
                           Details
                         </Link>
@@ -491,7 +482,7 @@ export default function PoliciesPage() {
                             type="button"
                             onClick={() => handleToggleArchive(policy)}
                             disabled={isArchiveBusy}
-                            className="rounded-md border border-amber-500/70 px-3 py-1 text-amber-200 hover:bg-amber-500/10 transition disabled:opacity-50"
+                            className={btnDangerSoft}
                           >
                             {isArchiveBusy ? "Updating…" : archiveLabel}
                           </button>

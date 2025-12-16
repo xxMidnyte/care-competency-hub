@@ -15,6 +15,15 @@ type Facility = {
 
 const CURRENT_FACILITY_KEY = "cch_current_facility_id";
 
+const primaryBtn =
+  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background disabled:opacity-60";
+
+const secondaryBtn =
+  "inline-flex items-center justify-center rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+
+const inputBase =
+  "mt-1 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+
 export default function FacilitiesPage() {
   const { loading: orgLoading, org, organizationId } = useOrg();
   const userRole = org?.role ?? "staff";
@@ -23,8 +32,7 @@ export default function FacilitiesPage() {
   const hasFacilityModule = org?.featureFlags?.has_facility_module ?? true; // default true so it doesn't block you yet
   const hasModuleAccess = isDevOrg || hasFacilityModule;
 
-  const canManageFacilities =
-    userRole === "dev" || userRole === "admin";
+  const canManageFacilities = userRole === "dev" || userRole === "admin";
 
   const [loading, setLoading] = useState(true);
   const [facilities, setFacilities] = useState<Facility[]>([]);
@@ -69,7 +77,6 @@ export default function FacilitiesPage() {
           return;
         }
 
-        // 1) load facilities for this org
         const { data, error: facError } = await supabase
           .from("facilities")
           .select("id, name, city, state, beds")
@@ -85,12 +92,9 @@ export default function FacilitiesPage() {
 
         setFacilities((data as Facility[]) || []);
 
-        // 2) load current facility from localStorage (if any)
         if (typeof window !== "undefined") {
           const stored = window.localStorage.getItem(CURRENT_FACILITY_KEY);
-          if (stored) {
-            setCurrentFacilityId(stored);
-          }
+          if (stored) setCurrentFacilityId(stored);
         }
 
         setLoading(false);
@@ -166,10 +170,7 @@ export default function FacilitiesPage() {
   }
 
   async function handleDeleteFacility(id: string) {
-    if (!canManageFacilities) {
-      // Safety: UI already hides this
-      return;
-    }
+    if (!canManageFacilities) return;
 
     setError(null);
 
@@ -214,18 +215,20 @@ export default function FacilitiesPage() {
   // ---- HARD ERRORS (no org / no module) ----
   if (orgLoading || loading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="p-6 text-sm text-slate-400">Loading facilities…</div>
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="px-6 py-4 text-sm text-foreground/60">
+          Loading facilities…
+        </div>
       </div>
     );
   }
 
   if (error && (!hasModuleAccess || !organizationId)) {
     return (
-      <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <div className="px-4 py-6 max-w-3xl space-y-3">
+      <div className="min-h-screen bg-background text-foreground">
+        <div className="px-6 py-4 max-w-3xl space-y-3">
           <h1 className="text-xl font-semibold">Facilities</h1>
-          <p className="text-sm text-red-400">{error}</p>
+          <p className="text-sm text-red-500">{error}</p>
         </div>
       </div>
     );
@@ -233,15 +236,13 @@ export default function FacilitiesPage() {
 
   // ---- MAIN UI ----
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="px-6 py-4 space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-[var(--foreground)]">
-              Facilities
-            </h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="text-xl font-semibold tracking-tight">Facilities</h1>
+            <p className="mt-1 text-sm text-foreground/60">
               Manage the facilities in your organization and who is responsible
               for each one.
             </p>
@@ -250,7 +251,7 @@ export default function FacilitiesPage() {
           {canManageFacilities && (
             <button
               onClick={() => setShowCreate((v) => !v)}
-              className="rounded-full bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+              className={primaryBtn}
             >
               {showCreate ? "Cancel" : "Add facility"}
             </button>
@@ -259,22 +260,22 @@ export default function FacilitiesPage() {
 
         {/* Create facility card */}
         {showCreate && canManageFacilities && (
-          <div className="mt-2 rounded-2xl border border-slate-800 bg-[var(--surface-soft)] p-4 text-sm">
-            <h2 className="text-sm font-semibold text-[var(--foreground)]">
+          <div className="rounded-2xl border border-border bg-card shadow-card p-5 text-sm">
+            <h2 className="text-sm font-semibold text-foreground">
               Create facility
             </h2>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-foreground/60">
               Add a new facility to your organization. You can assign staff and
               competencies to it later.
             </p>
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-300">
+                <label className="block text-xs font-medium text-foreground/60">
                   Facility name
                 </label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-700 bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-emerald-500"
+                  className={inputBase}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="e.g. West Wing Care Center"
@@ -282,11 +283,11 @@ export default function FacilitiesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300">
+                <label className="block text-xs font-medium text-foreground/60">
                   City
                 </label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-700 bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-emerald-500"
+                  className={inputBase}
                   value={newCity}
                   onChange={(e) => setNewCity(e.target.value)}
                   placeholder="St. Cloud"
@@ -294,11 +295,11 @@ export default function FacilitiesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300">
+                <label className="block text-xs font-medium text-foreground/60">
                   State
                 </label>
                 <input
-                  className="mt-1 w-full rounded-md border border-slate-700 bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-emerald-500"
+                  className={inputBase}
                   value={newState}
                   onChange={(e) => setNewState(e.target.value)}
                   placeholder="MN"
@@ -306,13 +307,13 @@ export default function FacilitiesPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300">
+                <label className="block text-xs font-medium text-foreground/60">
                   Beds (optional)
                 </label>
                 <input
                   type="number"
                   min={0}
-                  className="mt-1 w-full rounded-md border border-slate-700 bg-[var(--surface)] px-2 py-1.5 text-xs text-[var(--foreground)] outline-none focus:border-emerald-500"
+                  className={inputBase}
                   value={newBeds}
                   onChange={(e) => setNewBeds(e.target.value)}
                   placeholder="80"
@@ -320,16 +321,12 @@ export default function FacilitiesPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex items-center justify-between">
-              {error && (
-                <p className="text-xs text-red-400">
-                  {error}
-                </p>
-              )}
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {error && <p className="text-xs text-red-500">{error}</p>}
               <button
                 onClick={handleCreateFacility}
                 disabled={creating}
-                className="ml-auto rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-60"
+                className={`${primaryBtn} sm:ml-auto text-sm`}
               >
                 {creating ? "Saving…" : "Save facility"}
               </button>
@@ -338,23 +335,22 @@ export default function FacilitiesPage() {
         )}
 
         {/* Content */}
-        <div className="mt-4">
+        <div>
           {!loading && !showCreate && error && (
-            <p className="text-sm text-red-400">{error}</p>
+            <p className="text-sm text-red-500">{error}</p>
           )}
 
           {!loading && !error && !hasFacilities && !showCreate && (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-[var(--surface-soft)] p-6 text-sm text-slate-400">
-              <p className="font-medium text-[var(--foreground)]">
+            <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-sm">
+              <p className="font-medium text-foreground">
                 No facilities found for this organization.
               </p>
-              <p className="mt-1">
+              <p className="mt-1 text-foreground/60">
                 {canManageFacilities ? (
                   <>
-                    Use the{" "}
-                    <span className="font-medium">Add facility</span> button to
-                    create your first location. You can assign staff and
-                    competencies to a facility once it&apos;s created.
+                    Use the <span className="font-medium">Add facility</span>{" "}
+                    button to create your first location. You can assign staff
+                    and competencies to a facility once it&apos;s created.
                   </>
                 ) : (
                   "An administrator can add facilities for your organization."
@@ -372,7 +368,7 @@ export default function FacilitiesPage() {
                 return (
                   <div
                     key={fac.id}
-                    className="group relative rounded-2xl border border-slate-800 bg-[var(--surface-soft)] p-4 text-sm"
+                    className="group relative rounded-2xl border border-border bg-card shadow-card p-4 text-sm"
                   >
                     {/* Hover delete (admin/dev only) */}
                     {canManageFacilities && (
@@ -380,42 +376,46 @@ export default function FacilitiesPage() {
                         type="button"
                         onClick={() => handleDeleteFacility(fac.id)}
                         disabled={isDeleting}
-                        className="absolute right-3 top-3 rounded-full bg-[var(--surface)] p-1 text-xs text-slate-400 opacity-0 shadow-sm transition-all group-hover:-translate-y-1 group-hover:opacity-100 hover:text-red-400 disabled:cursor-not-allowed"
+                        className="absolute right-3 top-3 rounded-full border border-border bg-card px-2 py-1 text-[11px] text-foreground/60 opacity-0 shadow-sm transition-all group-hover:-translate-y-1 group-hover:opacity-100 hover:text-red-500 disabled:cursor-not-allowed"
                         title="Delete facility"
                       >
                         {isDeleting ? "…" : "🗑"}
                       </button>
                     )}
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-[var(--foreground)]">
+                        <p className="text-sm font-semibold text-foreground">
                           {fac.name || "Untitled facility"}
                         </p>
                         {(fac.city || fac.state) && (
-                          <p className="text-xs text-slate-400">
+                          <p className="text-xs text-foreground/60">
                             {[fac.city, fac.state].filter(Boolean).join(", ")}
                           </p>
                         )}
                       </div>
+
                       {typeof fac.beds === "number" && (
-                        <span className="rounded-full bg-[var(--surface)] px-2 py-1 text-[11px] text-slate-400">
+                        <span className="shrink-0 rounded-full border border-border bg-muted px-2 py-1 text-[11px] text-foreground/70">
                           {fac.beds} beds
                         </span>
                       )}
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-                      <span>Managers &amp; staff assignments coming soon</span>
+                    <div className="mt-3 flex items-center justify-between gap-3 text-[11px] text-foreground/60">
+                      <span className="truncate">
+                        Managers &amp; staff assignments coming soon
+                      </span>
+
                       <button
                         onClick={() => handleSetCurrent(fac.id)}
-                        className={`rounded-full border px-2 py-1 text-[11px] ${
+                        className={`shrink-0 rounded-full border px-3 py-1 text-[11px] font-medium transition ${
                           isCurrent
-                            ? "border-emerald-500/80 text-emerald-300 bg-emerald-500/10"
-                            : "border-slate-700 text-slate-200 hover:border-emerald-500/60"
+                            ? "border-primary/40 bg-primary/10 text-primary"
+                            : "border-border bg-card text-foreground hover:bg-muted"
                         }`}
                       >
-                        {isCurrent ? "Current facility" : "Set as current"}
+                        {isCurrent ? "Current" : "Set current"}
                       </button>
                     </div>
                   </div>

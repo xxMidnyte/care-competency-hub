@@ -1,19 +1,28 @@
 // app/privacy/page.tsx
 export default function PrivacyPage() {
-  return (
-    <div className="mx-auto max-w-3xl px-4 py-12 text-slate-200">
-      <h1 className="text-2xl font-semibold text-slate-50">
-        Privacy Policy
-      </h1>
-      <p className="mt-2 text-sm text-slate-400">
-        Last updated: {new Date().toLocaleDateString()}
-      </p>
+  const lastUpdated = new Date().toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
-      <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-300">
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
-            1. Overview
-          </h2>
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-10 space-y-8 text-foreground">
+      <header className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          Legal
+        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Privacy Policy
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Last updated: {lastUpdated}
+        </p>
+      </header>
+
+      <div className="space-y-6 text-sm leading-relaxed text-muted-foreground">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">1. Overview</h2>
           <p className="mt-2">
             CareCompetencyHub (“we”, “our”, “us”) is committed to protecting the
             privacy of our users. This Privacy Policy explains how we collect,
@@ -21,48 +30,55 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
             2. Information We Collect
           </h2>
           <p className="mt-2">We may collect the following types of information:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-slate-300">
+          <ul className="mt-3 list-disc space-y-2 pl-6">
             <li>
-              **Account Information:** name, email, password, role,
-              organization.
+              <span className="font-semibold text-foreground">
+                Account Information:
+              </span>{" "}
+              name, email, password, role, organization.
             </li>
             <li>
-              **Facility Data:** staff lists, competencies, assignments,
-              uploads, and related administrative information.
+              <span className="font-semibold text-foreground">
+                Facility Data:
+              </span>{" "}
+              staff lists, competencies, assignments, uploads, and related
+              administrative information.
             </li>
             <li>
-              **Usage Data:** activity logs, device/browser details, and
-              general analytics.
+              <span className="font-semibold text-foreground">Usage Data:</span>{" "}
+              activity logs, device/browser details, and general analytics.
             </li>
             <li>
-              **Contact Form Data:** information you submit when requesting
-              demos or sending inquiries.
+              <span className="font-semibold text-foreground">
+                Contact Form Data:
+              </span>{" "}
+              information you submit when requesting demos or sending inquiries.
             </li>
           </ul>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
             3. How We Use Your Information
           </h2>
           <p className="mt-2">We use data to:</p>
-          <ul className="mt-2 list-disc space-y-1 pl-6 text-slate-300">
+          <ul className="mt-3 list-disc space-y-2 pl-6">
             <li>Provide and maintain the Service</li>
             <li>Communicate with you about updates or support</li>
             <li>Improve product performance and user experience</li>
-            <li>Help your facility track competencies & progress</li>
+            <li>Help your facility track competencies &amp; progress</li>
             <li>Respond to demo and contact requests</li>
           </ul>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
-            4. Data Storage & Security
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
+            4. Data Storage &amp; Security
           </h2>
           <p className="mt-2">
             We store data securely using industry-standard encryption and rely
@@ -72,21 +88,20 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
             5. Sharing of Information
           </h2>
           <p className="mt-2">
             We do not sell or rent your personal data. We may share information
             only with service providers that support the operation of the
-            platform (e.g., cloud hosting, email services), and only as
-            necessary to provide the Service.
+            platform and only as necessary to provide the Service.
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
-            6. Cookies & Tracking
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
+            6. Cookies &amp; Tracking
           </h2>
           <p className="mt-2">
             We may use cookies or analytics tools to understand usage patterns
@@ -95,8 +110,8 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
             7. Children’s Privacy
           </h2>
           <p className="mt-2">
@@ -105,8 +120,8 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
             8. Changes to This Policy
           </h2>
           <p className="mt-2">
@@ -115,15 +130,15 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-base font-semibold text-slate-100">
+        <section className="rounded-2xl border border-border bg-card shadow-card p-5">
+          <h2 className="text-base font-semibold text-foreground">
             9. Contact Us
           </h2>
           <p className="mt-2">
             If you have questions or requests regarding your data, email us at{" "}
             <a
               href="mailto:info@carecompetencyhub.com"
-              className="font-mono text-emerald-300"
+              className="font-mono text-primary hover:opacity-90 underline underline-offset-4"
             >
               info@carecompetencyhub.com
             </a>
