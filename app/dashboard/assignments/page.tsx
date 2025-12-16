@@ -131,6 +131,31 @@ function coerceToDateOnly(value: string) {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * Supabase can return nested joins as an object OR array depending on FK metadata.
+ * This helper normalizes either to a single object (or null).
+ */
+function firstOrNull<T>(v: T | T[] | null | undefined): T | null {
+  if (!v) return null;
+  return Array.isArray(v) ? (v[0] ?? null) : v;
+}
+
+type DBFacility = { id: string; name: string | null };
+
+type DBStaffMember = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  facility_id: string | null;
+  facilities?: DBFacility | DBFacility[] | null;
+};
+
+type DBCompetencyTemplate = {
+  id: string;
+  title: string | null;
+  risk: string | null;
+};
+
 type DBAssignmentRow = {
   id: string;
   org_id: string;
@@ -139,19 +164,9 @@ type DBAssignmentRow = {
   due_date: string | null;
   status: string | null;
 
-  staff_members?: {
-    id: string;
-    full_name: string | null;
-    email: string | null;
-    facility_id: string | null;
-    facilities?: { id: string; name: string | null } | null;
-  } | null;
-
-  competency_templates?: {
-    id: string;
-    title: string | null;
-    risk: string | null;
-  } | null;
+  // IMPORTANT: these may come back as object OR array depending on relationships
+  staff_members?: DBStaffMember | DBStaffMember[] | null;
+  competency_templates?: DBCompetencyTemplate | DBCompetencyTemplate[] | null;
 };
 
 function deriveStatusFromDb(status: string | null, due_date: string | null): Status {
@@ -249,8 +264,6 @@ export default function AssignmentsPage() {
       }
 
       try {
-        // ✅ Pull facility via staff_members.facility_id -> facilities
-        // ✅ Pull competency title/risk via competency_templates
         const { data, error: assignError } = await supabase
           .from("staff_competency_assignments")
           .select(
@@ -287,7 +300,8 @@ export default function AssignmentsPage() {
           return;
         }
 
-        const rows = (data || []) as DBAssignmentRow[];
+        // Cast via unknown to satisfy TS when Supabase join shapes vary.
+        const rows = (data || []) as unknown as DBAssignmentRow[];
 
         if (rows.length === 0) {
           setAssignments(mockAssignments);
@@ -296,19 +310,14 @@ export default function AssignmentsPage() {
         }
 
         const mapped: AssignmentCard[] = rows.map((row) => {
-          const staffName =
-            row.staff_members?.full_name ||
-            row.staff_members?.email ||
-            "Unknown staff";
+          const staff = firstOrNull(row.staff_members);
+          const facility = firstOrNull(staff?.facilities);
+          const comp = firstOrNull(row.competency_templates);
 
-          const facilityName =
-            row.staff_members?.facilities?.name ||
-            "—";
-
-          const competencyTitle =
-            row.competency_templates?.title || "Untitled competency";
-
-          const risk = normalizeRisk(row.competency_templates?.risk || null);
+          const staffName = staff?.full_name || staff?.email || "Unknown staff";
+          const facilityName = facility?.name || "—";
+          const competencyTitle = comp?.title || "Untitled competency";
+          const risk = normalizeRisk(comp?.risk || null);
 
           const dateOnly = row.due_date ? coerceToDateOnly(row.due_date) : null;
           const derived = deriveStatusFromDb(row.status, row.due_date);
@@ -318,7 +327,7 @@ export default function AssignmentsPage() {
 
             staffId: row.staff_id ?? null,
             competencyId: row.competency_id ?? null,
-            facilityId: row.staff_members?.facility_id ?? null,
+            facilityId: staff?.facility_id ?? null,
 
             staffName,
             competencyTitle,
