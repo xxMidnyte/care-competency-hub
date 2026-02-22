@@ -299,7 +299,7 @@ export default function ResultsDashboard() {
                   const fill = isTop5 ? (DOMAIN_MAP[payload.value]?.hex || "#4f46e5") : "#64748b";
                   return (
                     <text x={x} y={y} fill={fill} fontSize={isTop5 ? "12px" : "10px"} fontWeight={isTop5 ? "900" : "600"}
-                      textAnchor={x > 400 ? 'start' : x < 400 ? 'end' : 'middle'} dominantBaseline="central" className="uppercase tracking-tighter">
+                      textAnchor={Number(x) > 400 ? 'start' : Number(x) < 400 ? 'end' : 'middle'} dominantBaseline="central" className="uppercase tracking-tighter">
                       {payload.value}
                     </text>
                   );
