@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Timer, CheckCircle2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from "@/lib/supabaseClient";
 import { getRecommendedTrack } from '@/lib/talent-dna-utils';
 
 interface Question {
@@ -16,7 +16,6 @@ interface Question {
 
 export default function TalentDNAEngine() {
   const router = useRouter();
-  const supabase = createClientComponentClient();
   
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
