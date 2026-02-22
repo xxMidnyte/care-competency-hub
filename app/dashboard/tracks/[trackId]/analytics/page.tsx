@@ -1,4 +1,3 @@
-// app/dashboard/tracks/[trackId]/analytics/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -109,7 +108,8 @@ export default function TrackAnalyticsPage() {
         .order("created_at", { ascending: false });
 
       if (!joinErr && joined) {
-        setRows(joined as AssignmentRow[]);
+        // FIXED: Double cast to bypass Type overlap error
+        setRows(joined as unknown as AssignmentRow[]);
         setJoinOk(true);
         setLoading(false);
         return;
@@ -129,7 +129,7 @@ export default function TrackAnalyticsPage() {
 
       if (plainErr) console.error("Assignments load error:", plainErr);
 
-      const plainRows = (plain as AssignmentRow[]) || [];
+      const plainRows = (plain as unknown as AssignmentRow[]) || [];
       setRows(plainRows);
 
       // ✅ NEW: hydrate staff/facility names via two extra queries
@@ -140,7 +140,7 @@ export default function TrackAnalyticsPage() {
         new Set(plainRows.map((r) => r.facility_id).filter(Boolean))
       );
 
-      // fetch staff in one go (chunk if needed later)
+      // fetch staff in one go
       if (staffIds.length) {
         const { data: staffRows, error: staffErr } = await supabase
           .from("staff_members")
@@ -336,7 +336,6 @@ export default function TrackAnalyticsPage() {
                 {rows.map((r) => {
                   const overdue = isOverdue(r.due_date, r.status);
 
-                  // ✅ joined (if available) OR fallback map OR raw id
                   const joinedStaff = r.staff_members;
                   const fallbackStaff = staffMap[r.staff_id];
 
