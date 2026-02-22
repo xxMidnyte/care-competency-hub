@@ -1,4 +1,3 @@
-// app/layout.tsx
 import "./globals.css";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,8 +11,10 @@ export const metadata = {
 const ui = {
   body: "min-h-screen antialiased bg-background text-foreground",
   shell: "flex min-h-screen flex-col",
-  main: "mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 py-8 sm:py-10",
-  footer: "border-t border-border bg-background",
+  // Added print:p-0 to ensure the main content uses the full paper width
+  main: "mx-auto w-full max-w-6xl flex-1 px-4 sm:px-6 py-8 sm:py-10 print:px-0 print:py-4",
+  // Added no-print to hide the footer on paper
+  footer: "border-t border-border bg-background no-print",
   footerWrap:
     "mx-auto flex max-w-6xl flex-col gap-6 px-4 sm:px-6 py-8 md:flex-row md:items-start md:justify-between",
   footerTitle:
@@ -33,16 +34,31 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={ui.body}>
         <div className={ui.shell}>
-          {/* TOP NAVBAR (client component handles auth + theme toggle) */}
-          <TopNav />
+          
+          {/* 1. HIDE TOP NAV ON PRINT */}
+          <div className="no-print">
+            <TopNav />
+          </div>
 
-          {/* MAIN CONTENT */}
+          {/* 2. PRINT-ONLY WATERMARK/HEADER 
+              This only shows up on the paper, making it look like a formal document.
+          */}
+          <div className="hidden print:flex items-center justify-between border-b-2 border-slate-100 pb-4 mb-8">
+            <div className="flex items-center gap-2">
+               <Image src="/logo-mark.png" alt="Logo" width={24} height={24} />
+               <span className="font-bold text-sm tracking-tight text-slate-900">CareCompetencyHub</span>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Official Talent DNA Report</p>
+              <p className="text-[8px] text-slate-300 font-mono">{new Date().toLocaleDateString()}</p>
+            </div>
+          </div>
+
           <main className={ui.main}>{children}</main>
 
-          {/* FOOTER */}
+          {/* 3. FOOTER IS NOW HIDDEN ON PRINT */}
           <footer className={ui.footer}>
             <div className={ui.footerWrap}>
-              {/* Brand + tagline */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Image
@@ -59,8 +75,7 @@ export default function RootLayout({
 
                 <p className={`max-w-sm text-[12px] leading-relaxed ${ui.footerMuted}`}>
                   Nurse-led competency &amp; compliance tooling for nursing and
-                  rehab teams. Built for people who are tired of spreadsheets,
-                  binders, and &quot;we&apos;ll find it later.&quot;
+                  rehab teams.
                 </p>
 
                 <p className={ui.footerFine}>
@@ -68,84 +83,27 @@ export default function RootLayout({
                 </p>
               </div>
 
-              {/* Navigation columns */}
               <div className="grid flex-1 gap-6 text-[12px] md:grid-cols-3">
                 <div>
                   <h3 className={ui.footerTitle}>Product</h3>
                   <ul className="mt-3 space-y-2">
-                    <li>
-                      <Link href="/pricing" className={ui.footerLink}>
-                        Pricing
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/demo" className={ui.footerLink}>
-                        Book a demo
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/contact" className={ui.footerLink}>
-                        Contact
-                      </Link>
-                    </li>
+                    <li><Link href="/pricing" className={ui.footerLink}>Pricing</Link></li>
+                    <li><Link href="/demo" className={ui.footerLink}>Book a demo</Link></li>
                   </ul>
                 </div>
-
                 <div>
                   <h3 className={ui.footerTitle}>Resources</h3>
                   <ul className="mt-3 space-y-2">
-                    <li>
-                      <Link href="/blog" className={ui.footerLink}>
-                        Blog
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/podcast" className={ui.footerLink}>
-                        Podcast
-                      </Link>
-                    </li>
-                    <li>
-                      <Link href="/help" className={ui.footerLink}>
-                        Help & FAQs
-                      </Link>
-                    </li>
+                    <li><Link href="/blog" className={ui.footerLink}>Blog</Link></li>
+                    <li><Link href="/help" className={ui.footerLink}>Help & FAQs</Link></li>
                   </ul>
                 </div>
-
                 <div>
-                  <h3 className={ui.footerTitle}>Contact</h3>
-                  <div className="mt-3 space-y-2">
-                    <p className="text-[12px]">
-                      Email{" "}
-                      <a
-                        href="mailto:info@carecompetencyhub.com"
-                        className="font-mono text-primary hover:opacity-90 transition"
-                      >
-                        info@carecompetencyhub.com
-                      </a>
-                    </p>
-                    <p className={ui.footerFine}>
-                      Prefer a call? Book a time on our{" "}
-                      <Link href="/demo" className="text-primary hover:opacity-90 transition">
-                        demo calendar
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={ui.divider}>
-              <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-2 px-4 sm:px-6 py-4 text-[11px] text-foreground/50 sm:flex-row">
-                <p>© {new Date().getFullYear()} CareCompetencyHub. All rights reserved.</p>
-                <div className="flex gap-4">
-                  <Link href="/terms" className="hover:text-primary transition">
-                    Terms
-                  </Link>
-                  <Link href="/privacy" className="hover:text-primary transition">
-                    Privacy
-                  </Link>
+                  <h3 className={ui.footerTitle}>Legal</h3>
+                  <ul className="mt-3 space-y-2">
+                    <li><Link href="/terms" className={ui.footerLink}>Terms</Link></li>
+                    <li><Link href="/privacy" className={ui.footerLink}>Privacy</Link></li>
+                  </ul>
                 </div>
               </div>
             </div>

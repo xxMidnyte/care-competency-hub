@@ -1,194 +1,119 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------
-   THEME VARIABLES (driven by <html data-theme="...">)
+   THEME VARIABLES
    ------------------------------------------------------- */
-
-/* Default (no data-theme) = dark */
 :root {
-  /* Base */
-  --background: #020617; /* deep slate */
+  --background: #020617;
   --foreground: #e5e7eb;
-
-  /* Layers / depth */
   --card: #050b1a;
   --card-2: #071124;
   --muted: rgba(148, 163, 184, 0.10);
   --border: rgba(148, 163, 184, 0.14);
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
-
-  /* Brand */
-  --primary: #10b981; /* emerald */
+  --primary: #10b981;
   --primary-foreground: #052e25;
   --ring: rgba(16, 185, 129, 0.35);
 }
 
-:root[data-theme="dark"] {
-  /* (same as default — override here if desired later) */
-}
-
 :root[data-theme="light"] {
-  /* Cleaner, less gray than slate-100 */
   --background: #f8fafc;
   --foreground: #0f172a;
-
   --card: #ffffff;
   --card-2: #f1f5f9;
   --muted: rgba(15, 23, 42, 0.06);
   --border: rgba(15, 23, 42, 0.12);
   --shadow: 0 12px 30px rgba(2, 6, 23, 0.10);
-
-  /* Slightly deeper so it reads on white */
   --primary: #0ea371;
   --primary-foreground: #052e25;
   --ring: rgba(14, 163, 113, 0.25);
 }
 
-/* Tailwind theme bridge */
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
   --color-card: var(--card);
   --color-card-2: var(--card-2);
   --color-muted: var(--muted);
   --color-border: var(--border);
-
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-ring: var(--ring);
-
   --shadow-card: var(--shadow);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 /* -------------------------------------------------------
-   GLOBAL BODY
+   GLOBAL SETUP
    ------------------------------------------------------- */
-
-html,
-body {
-  height: 100%;
+html, body {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system,
-    Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-}
-
-/* Make borders and selection feel consistent */
-* {
-  border-color: var(--border);
-}
-
-::selection {
-  background: rgba(16, 185, 129, 0.25);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 
 /* -------------------------------------------------------
-   GLOBAL TYPE SCALE
+   PRINT ENGINE (THE FIX)
    ------------------------------------------------------- */
-
-html {
-  font-size: 16px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 17px;
-  }
-}
-
-@media (min-width: 1280px) {
-  html {
-    font-size: 18px;
-  }
-}
-
-/* -------------------------------------------------------
-   HERO & FOOTER HELPERS
-   ------------------------------------------------------- */
-
-.hero-shell {
-  /* More “designed” depth in both themes */
-  background:
-    radial-gradient(circle at 50% 120%,
-      rgba(16, 185, 129, 0.18),
-      transparent 55%),
-    radial-gradient(circle at 50% -20%,
-      rgba(56, 189, 248, 0.08),
-      transparent 45%);
-}
-
-:root[data-theme="light"] .hero-shell {
-  background:
-    radial-gradient(circle at 50% 120%,
-      rgba(16, 185, 129, 0.10),
-      transparent 60%),
-    radial-gradient(circle at 50% -20%,
-      rgba(2, 132, 199, 0.06),
-      transparent 45%);
-}
-
-.hero-title {
-  color: var(--foreground);
-}
-
-/* Footer (kept dark in both themes) */
-.site-footer {
-  background:
-    radial-gradient(circle at top center,
-      rgba(15, 23, 42, 0.9),
-      #020617 60%);
-  color: #e5e7eb;
-}
-
-:root[data-theme="light"] .site-footer {
-  background:
-    radial-gradient(circle at top center,
-      rgba(15, 23, 42, 0.95),
-      #020617 65%);
-  color: #e5e7eb;
-}
-
-/* Stuff that should never appear on the physical printout */
-.no-print {
-  display: none !important;
-}
-
-/* Print-only overrides for drill station sheets */
 @media print {
-  body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+  /* 1. Hide Non-Report UI */
+  nav, aside, [class*="sidebar"], button, .no-print {
+    display: none !important;
   }
 
-  /* Hide everything by default */
-  body * {
-    visibility: hidden;
-  }
-
-  /* Show only the print root + children */
-  #drill-print-root,
-  #drill-print-root * {
-    visibility: visible;
-  }
-
-  /* Make the print root fill the page and be white */
-  #drill-print-root {
-    position: absolute;
-    inset: 0;
+  /* 2. Reset Document for Center & Full Width */
+  html, body {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+    width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #ffffff !important;
   }
 
-  /* Extra safety: hide any print buttons, etc. */
-  .no-print {
-    display: none !important;
+  /* Force the main container to center and not be pushed by hidden sidebars */
+  main, 
+  div[class*="max-w-"], 
+  .max-w-7xl {
+    margin: 0 auto !important;
+    padding: 0 !important;
+    width: 95% !important; /* Slight breathing room for margins */
+    max-width: 100% !important;
+    position: static !important;
+    transform: none !important;
+    border: none !important;
+  }
+
+  /* 3. Render Graphics Correctly */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure Radar Chart Labels aren't clipped */
+  .recharts-responsive-container {
+    overflow: visible !important;
+  }
+
+  svg {
+    overflow: visible !important;
+  }
+
+  .recharts-surface {
+    margin: 0 auto !important;
+  }
+
+  /* Prevent elements from being sliced in half across pages */
+  .print-break-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 20px !important;
   }
 }

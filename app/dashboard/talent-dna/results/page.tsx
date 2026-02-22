@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { Award, Zap, Brain, ArrowRight, Loader2, Printer, BarChart3, Activity, Heart, AlertCircle } from 'lucide-react';
-import { PieChart, Pie, Cell, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, Radar, Tooltip, LabelList } from 'recharts';
+import { useEffect, useState, useMemo } from 'react';
+import { Award, Zap, ArrowRight, Loader2, Printer, BarChart3, Activity, Sparkles } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, LabelList, RadarChart, PolarGrid, PolarAngleAxis, Radar } from 'recharts';
 import { supabase } from '@/lib/supabaseClient'; 
-import { getRecommendedTrack } from '@/lib/talent-dna-utils';
+import { getRecommendedTrack, getPowerPairing } from '@/lib/talent-dna-utils';
 import { TALENT_THEMES } from '@/lib/talentData'; 
 import DevelopmentPlan from '@/components/DevelopmentPlan';
 
-// Updated DOMAIN_MAP with fallbacks in mind
 const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string; hex: string; definition: string; love: string; dislike: string }> = {
   "Consistent Producer": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Turning ideas into reality and ensuring precision in clinical tasks.", love: "Reliability", dislike: "Laziness" },
   "Shift Coordinator": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Ensuring smooth clinical flow and operational excellence.", love: "Efficiency", dislike: "Disruption" },
@@ -46,30 +45,8 @@ const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string
   "Pathway Mapper": { domain: "Strategic", color: "bg-emerald-500", border: "border-emerald-200", hex: "#10b981", definition: "Designing the step-by-step route to reach goals.", love: "Planning", dislike: "Aimlessness" },
 };
 
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const info = DOMAIN_MAP[data.subject] || { hex: '#6366f1', definition: 'Clinical talent metric.' };
-
-    return (
-      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-2xl z-50">
-        <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: info?.hex || '#6366f1' }}>
-          {data?.subject || 'Theme'}
-        </p>
-        <p className="text-slate-600 text-[11px] leading-relaxed max-w-[220px]">
-          {info?.definition || 'Clinical metric.'}
-        </p>
-      </div>
-    );
-  }
-  return null;
-};
-
 export default function ResultsDashboard() {
-  const [allTalentsSorted, setAllTalentsSorted] = useState<[string, number][]>([]);
-  const [dnaChartData, setDnaChartData] = useState<any[]>([]);
-  const [recommendation, setRecommendation] = useState<any>(null);
-  const [domainStats, setDomainStats] = useState<any[]>([]);
+  const [rawScores, setRawScores] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -87,47 +64,53 @@ export default function ResultsDashboard() {
         .maybeSingle();
 
       if (data?.raw_scores_json) {
-        processResults(data.raw_scores_json as Record<string, number>);
+        setRawScores(data.raw_scores_json as Record<string, number>);
       }
       setLoading(false);
     }
-
-    const processResults = (scores: Record<string, number>) => {
-      const baseSorted = Object.entries(scores)
-        .filter(([theme]) => TALENT_THEMES.includes(theme))
-        .sort(([, a], [, b]) => b - a) as [string, number][];
-      
-      if (baseSorted.length === 0) return;
-
-      const top5Names = baseSorted.slice(0, 5).map(([name]) => name);
-      const rec = getRecommendedTrack(top5Names);
-      
-      const domains = ["Strategic", "Influencing", "Relationship", "Executing"];
-      const grouped = domains.flatMap(domain => 
-        baseSorted
-          .filter(([name]) => DOMAIN_MAP[name]?.domain === domain)
-          .map(([name, score]) => ({
-            subject: name,
-            intensity: score,
-            domain: domain,
-            fullValue: score,
-            color: DOMAIN_MAP[name]?.hex || "#cbd5e1"
-          }))
-      );
-
-      const pieData = domains.map(d => ({
-        name: d,
-        value: baseSorted.slice(0, 10).filter(([name]) => DOMAIN_MAP[name]?.domain === d).length,
-        color: Object.values(DOMAIN_MAP).find(v => v.domain === d)?.hex || "#64748b"
-      })).filter(d => d.value > 0);
-      
-      setDomainStats(pieData);
-      setAllTalentsSorted(baseSorted);
-      setDnaChartData(grouped);
-      setRecommendation(rec);
-    };
     fetchResults();
   }, []);
+
+  // Use Memo to process all UI data once rawScores are available
+  const processedData = useMemo(() => {
+    if (Object.keys(rawScores).length === 0) return null;
+
+    const baseSorted = Object.entries(rawScores)
+      .filter(([theme]) => TALENT_THEMES.includes(theme))
+      .sort(([, a], [, b]) => b - a) as [string, number][];
+
+    const top5 = baseSorted.slice(0, 5);
+    const top5Names = top5.map(([name]) => name);
+    const domains = ["Strategic", "Influencing", "Relationship", "Executing"];
+
+    const dnaChartData = domains.flatMap(domain => 
+      baseSorted
+        .filter(([name]) => DOMAIN_MAP[name]?.domain === domain)
+        .map(([name, score]) => ({
+          subject: name,
+          intensity: score,
+          domain: domain,
+          fullValue: score,
+          color: DOMAIN_MAP[name]?.hex || "#cbd5e1"
+        }))
+    );
+
+    const domainStats = domains.map(d => ({
+      name: d,
+      value: baseSorted.slice(0, 10).filter(([name]) => DOMAIN_MAP[name]?.domain === d).length,
+      color: Object.values(DOMAIN_MAP).find(v => v.domain === d)?.hex || "#64748b"
+    })).filter(d => d.value > 0);
+
+    return {
+      allTalentsSorted: baseSorted,
+      top5,
+      top5Names,
+      dnaChartData,
+      domainStats,
+      recommendation: getRecommendedTrack(top5Names),
+      powerPairing: getPowerPairing(top5Names)
+    };
+  }, [rawScores]);
 
   if (loading) return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center">
@@ -136,19 +119,13 @@ export default function ResultsDashboard() {
     </div>
   );
 
-  const top5 = allTalentsSorted.slice(0, 5);
+  if (!processedData) return <div className="p-20 text-center">No DNA data found.</div>;
+
+  const { allTalentsSorted, top5, dnaChartData, domainStats, recommendation, powerPairing } = processedData;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 bg-white min-h-screen print:p-0">
-      <style jsx global>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .print-break-avoid { page-break-inside: avoid; }
-          .print-full-width { width: 100% !important; max-width: 100% !important; border: none !important; box-shadow: none !important; }
-        }
-      `}</style>
-
+    <div className="max-w-7xl mx-auto p-4 md:p-8 bg-white min-h-screen print:p-0">
+      
       <header className="flex flex-col md:flex-row justify-between items-start mb-12 gap-6 no-print">
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-100">
@@ -156,7 +133,7 @@ export default function ResultsDashboard() {
           </div>
           <h1 className="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Your Talent DNA Profile</h1>
           <p className="text-slate-500 text-lg max-w-2xl leading-relaxed">
-            Personalized clinical and leadership map based on your natural recurring patterns of behavior.
+            Your unique clinical fingerprint based on your natural recurring patterns of behavior.
           </p>
         </div>
         <button onClick={() => window.print()} className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg">
@@ -164,23 +141,23 @@ export default function ResultsDashboard() {
         </button>
       </header>
 
-      {/* Top 5 Section */}
+      {/* Top 5 Hero Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12 print-break-avoid">
         {top5.map(([name], index) => (
-          <div key={name} className={`relative p-6 rounded-2xl border-2 text-center ${
-              index === 0 ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white border-slate-100 text-slate-800'
-            }`}>
+          <div key={name} className={`relative p-6 rounded-2xl border-2 text-center transition-all ${
+            index === 0 ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white border-slate-100 text-slate-800'
+          }`}>
             <div className={`mx-auto w-10 h-10 rounded-full mb-3 flex items-center justify-center ${index === 0 ? 'bg-white/20' : 'bg-indigo-50 text-indigo-500'}`}>
               {index === 0 ? <Award size={20} /> : <Zap size={20} />}
             </div>
-            <p className="text-[9px] uppercase font-black tracking-widest mb-1 opacity-60 font-mono">Theme {index + 1}</p>
-            <h3 className="font-black text-[11px] leading-tight uppercase tracking-tight">{name}</h3>
+            <p className="text-[9px] uppercase font-black tracking-widest mb-1 opacity-60">Theme {index + 1}</p>
+            <h3 className="font-black text-[11px] leading-tight uppercase">{name}</h3>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
-        {/* Main Talent List */}
+        {/* Left Column: Talent Sequence Table */}
         <div className="lg:col-span-8 space-y-8">
           <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
             <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
@@ -213,8 +190,11 @@ export default function ResultsDashboard() {
                       <td className="px-4 py-4 text-xs text-emerald-700 font-medium italic hidden md:table-cell">{DOMAIN_MAP[theme]?.love || 'N/A'}</td>
                       <td className="px-4 py-4 text-xs text-rose-600 font-medium italic hidden md:table-cell">{DOMAIN_MAP[theme]?.dislike || 'N/A'}</td>
                       <td className="px-8 py-4 text-right">
-                        <div className="w-20 h-1.5 bg-slate-100 rounded-full inline-block overflow-hidden no-print">
-                          <div className={`h-full ${index < 5 ? 'bg-indigo-500' : 'bg-slate-300'}`} style={{ width: `${(score / (allTalentsSorted[0]?.[1] || 1)) * 100}%` }} />
+                        <div className="w-24 h-2 bg-slate-100 rounded-full inline-block overflow-hidden relative border border-slate-200">
+                          <div 
+                            className={`h-full absolute left-0 top-0 ${index < 5 ? 'bg-indigo-500' : 'bg-slate-300'}`} 
+                            style={{ width: `${(score / (allTalentsSorted[0]?.[1] || 1)) * 100}%` }} 
+                          />
                         </div>
                       </td>
                     </tr>
@@ -225,14 +205,14 @@ export default function ResultsDashboard() {
           </section>
         </div>
 
-        {/* Sidebar */}
+        {/* Right Column: Insights & Plan */}
         <div className="lg:col-span-4 space-y-6">
           {recommendation && (
             <div className="bg-slate-900 text-white rounded-[2rem] p-8 shadow-xl border-t-4 border-indigo-500 print-break-avoid">
               <p className="text-indigo-400 text-[10px] font-black uppercase mb-2 tracking-widest">Growth Pathway</p>
-              <h3 className="text-2xl font-black mb-4 leading-tight">{recommendation?.trackName || 'Clinical Excellence'}</h3>
+              <h3 className="text-2xl font-black mb-4 leading-tight">{recommendation?.trackName}</h3>
               <p className="text-slate-400 text-sm mb-6 italic leading-relaxed">
-                "Your high concentration of {top5[0]?.[0]} indicates a natural mastery for the {recommendation?.trackName || 'this'} trajectory."
+                "Your {top5[0]?.[0]} drive suggests a natural mastery for this trajectory."
               </p>
               <button className="no-print w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
                 Accept Track <ArrowRight size={16} />
@@ -240,17 +220,42 @@ export default function ResultsDashboard() {
             </div>
           )}
 
+          {powerPairing && (
+            <div className="bg-indigo-50 rounded-[2rem] p-8 border border-indigo-100 shadow-sm relative overflow-hidden group print-break-avoid">
+              <div className="absolute -right-4 -top-4 text-indigo-100/50 rotate-12 transition-transform group-hover:scale-110">
+                <Sparkles size={120} />
+              </div>
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-white border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-widest mb-4">
+                  Unique Synergy
+                </div>
+                <h4 className="text-xl font-black text-slate-900 leading-tight mb-3">
+                  {powerPairing.title}
+                </h4>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-[10px] font-bold px-2 py-1 bg-indigo-600 text-white rounded-lg">{top5[0]?.[0]}</span>
+                  <span className="text-slate-400 font-black">+</span>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-white border border-indigo-200 text-indigo-600 rounded-lg">{top5[1]?.[0]}</span>
+                </div>
+                <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                  {powerPairing.insight}
+                </p>
+              </div>
+            </div>
+          )}
+
           <DevelopmentPlan trackName={recommendation?.trackName || ''} />
 
+          {/* Domain Intensity Chart */}
           <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm print-break-avoid">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-6 text-center">Domain Intensity</h4>
-            <div className="h-64 w-full">
+            <div className="h-48 w-full mb-6">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={domainStats}
-                    innerRadius={60}
-                    outerRadius={90}
+                    innerRadius={45}
+                    outerRadius={70}
                     paddingAngle={5}
                     dataKey="value"
                     isAnimationActive={false}
@@ -262,8 +267,7 @@ export default function ResultsDashboard() {
                       dataKey="value" 
                       position="inside" 
                       fill="#fff" 
-                      stroke="none" 
-                      fontSize={11} 
+                      fontSize={10} 
                       fontWeight="900" 
                       formatter={(val: any) => `${Number(val) * 10}%`} 
                     />
@@ -272,12 +276,23 @@ export default function ResultsDashboard() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <div className="space-y-3">
+              {domainStats.map((domain) => (
+                <div key={domain.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: domain.color }} />
+                    <span className="text-[9px] font-black uppercase text-slate-600">{domain.name}</span>
+                  </div>
+                  <span className="text-[9px] font-mono font-bold text-slate-400">{domain.value * 10}%</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Radar Map */}
-      <section className="bg-white rounded-3xl border border-slate-200 p-8 md:p-12 shadow-sm print-full-width print-break-avoid overflow-hidden relative">
+      {/* Radar Map Section */}
+      <section className="bg-white rounded-3xl border border-slate-200 p-8 md:p-12 shadow-sm print:break-before-page overflow-visible relative mb-12">
         <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
           <div className="flex items-center gap-4">
             <Activity className="text-indigo-600" size={28} />
@@ -288,38 +303,44 @@ export default function ResultsDashboard() {
           </div>
         </div>
 
-        <div className="w-full h-[700px] flex items-center justify-center overflow-visible">
+        <div className="w-full h-[600px] flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={dnaChartData} className="overflow-visible">
-              <PolarGrid stroke="#e2e8f0" strokeWidth={1} />
+            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={dnaChartData}>
+              <PolarGrid stroke="#e2e8f0" />
               <PolarAngleAxis 
                 dataKey="subject" 
                 tick={({ x, y, payload }) => {
                   const isTop5 = top5.some(([name]) => name === payload.value);
-                  const fill = isTop5 ? (DOMAIN_MAP[payload.value]?.hex || "#4f46e5") : "#64748b";
+                  const fill = isTop5 ? (DOMAIN_MAP[payload.value]?.hex || "#4f46e5") : "#94a3b8";
                   return (
-                    <text x={x} y={y} fill={fill} fontSize={isTop5 ? "12px" : "10px"} fontWeight={isTop5 ? "900" : "600"}
-                      textAnchor={Number(x) > 400 ? 'start' : Number(x) < 400 ? 'end' : 'middle'} dominantBaseline="central" className="uppercase tracking-tighter">
+                    <text x={x} y={y} fill={fill} fontSize={isTop5 ? "11px" : "8px"} fontWeight={isTop5 ? "900" : "500"} textAnchor="middle" className="uppercase tracking-tighter">
                       {payload.value}
                     </text>
                   );
-                }}
+                }} 
               />
               <Radar
+                name="Talent Intensity"
                 dataKey="fullValue"
-                stroke="transparent"
-                fill="transparent"
-                isAnimationActive={false}
+                stroke="#6366f1"
+                strokeWidth={0.5}
+                fill="#6366f1"
+                fillOpacity={0.03}
                 dot={(props: any) => {
                   const { cx, cy, payload } = props;
                   const isTop5 = top5.some(([name]) => name === payload.subject);
+                  if (!isTop5) return null; // Only render the "lines" for Top 5
                   return (
-                    <line x1="50%" y1="50%" x2={cx} y2={cy} stroke={payload?.color || '#cbd5e1'} strokeWidth={isTop5 ? "6" : "1.5"} 
-                      strokeLinecap="round" style={{ opacity: isTop5 ? 1 : 0.25 }} />
+                    <line 
+                      x1="50%" y1="50%" 
+                      x2={cx} y2={cy} 
+                      stroke={payload?.color || '#cbd5e1'} 
+                      strokeWidth="5" 
+                      style={{ opacity: 1 }} 
+                    />
                   );
                 }}
               />
-              <Tooltip content={<CustomTooltip />} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
