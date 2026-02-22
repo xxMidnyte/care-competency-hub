@@ -192,7 +192,8 @@ export default function MyCompetenciesPage() {
 
   /* ---------- Load assignments ---------- */
   useEffect(() => {
-    if (!staff) return;
+    // --- FIXED: Added check to prevent 'staff is possibly null' error ---
+    if (!staff?.id) return;
 
     async function load() {
       setLoading(true);
@@ -200,7 +201,7 @@ export default function MyCompetenciesPage() {
       const { data: assigns } = await supabase
         .from("competency_assignments")
         .select("id, org_id, staff_id, competency_id, due_date, status, completed_at")
-        .eq("staff_id", staff.id)
+        .eq("staff_id", staff!.id) // Using ! here is now safe because of the if statement above
         .order("due_date");
 
       if (!assigns || assigns.length === 0) {
