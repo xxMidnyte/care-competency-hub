@@ -196,6 +196,12 @@ export default function TrackBuilderPage() {
     setSavingMeta(false);
   }
 
+  const renameSection = (sectionId: string, newTitle: string) => {
+    setSections((prev) =>
+     prev.map((s) => (s.id === sectionId ? { ...s, title: newTitle } : s))
+   );
+  };
+
   async function addSection() {
     const title = newSectionTitle.trim();
     if (!title || !trackId) return;
