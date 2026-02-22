@@ -8,8 +8,8 @@ import { getRecommendedTrack } from '@/lib/talent-dna-utils';
 import { TALENT_THEMES } from '@/lib/talentData'; 
 import DevelopmentPlan from '@/components/DevelopmentPlan';
 
+// ... DOMAIN_MAP stays the same as before ...
 const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string; hex: string; definition: string; love: string; dislike: string }> = {
-  // Executing
   "Consistent Producer": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Turning ideas into reality and ensuring precision in clinical tasks.", love: "Reliability", dislike: "Laziness" },
   "Shift Coordinator": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Ensuring smooth clinical flow and operational excellence.", love: "Efficiency", dislike: "Disruption" },
   "Mission-Driven": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Operating with a deep sense of purpose and clinical values.", love: "Purpose", dislike: "Apathy" },
@@ -19,7 +19,6 @@ const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string
   "Target-Oriented": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Driven to meet and exceed clinical performance benchmarks.", love: "Results", dislike: "Stagnation" },
   "Ultimate Owner": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Taking full responsibility for outcomes and follow-through.", love: "Commitment", dislike: "Excuses" },
   "Crisis Fixer": { domain: "Executing", color: "bg-purple-500", border: "border-purple-200", hex: "#a855f7", definition: "Thriving in high-pressure environments to restore order.", love: "Resolution", dislike: "Panic" },
-  // Influencing
   "Momentum Builder": { domain: "Influencing", color: "bg-orange-500", border: "border-orange-200", hex: "#f97316", definition: "Energizing the team and building excitement.", love: "Energy", dislike: "Pessimism" },
   "Direct Leader": { domain: "Influencing", color: "bg-orange-500", border: "border-orange-200", hex: "#f97316", definition: "Providing clear direction and taking charge of team results.", love: "Clarity", dislike: "Indecision" },
   "Staff Storyteller": { domain: "Influencing", color: "bg-orange-500", border: "border-orange-200", hex: "#f97316", definition: "Using communication to inspire and align the clinical staff.", love: "Engagement", dislike: "Silence" },
@@ -28,7 +27,6 @@ const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string
   "Confident Clinician": { domain: "Influencing", color: "bg-orange-500", border: "border-orange-200", hex: "#f97316", definition: "Projecting certainty and expertise in decision-making.", love: "Certainty", dislike: "Self-doubt" },
   "Legacy Maker": { domain: "Influencing", color: "bg-orange-500", border: "border-orange-200", hex: "#f97316", definition: "Focused on making a long-term impact on the organization.", love: "Impact", dislike: "Short-termism" },
   "Community Connector": { domain: "Influencing", color: "bg-orange-500", border: "border-orange-200", hex: "#f97316", definition: "Building external relationships and visibility.", love: "Networking", dislike: "Isolation" },
-  // Relationship
   "Fluid Responder": { domain: "Relationship", color: "bg-blue-500", border: "border-blue-200", hex: "#3b82f6", definition: "Adapting naturally to the changing needs of the team.", love: "Flexibility", dislike: "Rigidity" },
   "Holistic Thinker": { domain: "Relationship", color: "bg-blue-500", border: "border-blue-200", hex: "#3b82f6", definition: "Seeing the person behind the patient and the staff.", love: "Empathy", dislike: "Coldness" },
   "Staff Mentor": { domain: "Relationship", color: "bg-blue-500", border: "border-blue-200", hex: "#3b82f6", definition: "Investing in the growth and development of colleagues.", love: "Potential", dislike: "Neglect" },
@@ -38,7 +36,6 @@ const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string
   "Person-Centered": { domain: "Relationship", color: "bg-blue-500", border: "border-blue-200", hex: "#3b82f6", definition: "Focusing on individual uniqueness to drive engagement.", love: "Unique Fits", dislike: "Stereotypes" },
   "Morale Booster": { domain: "Relationship", color: "bg-blue-500", border: "border-blue-200", hex: "#3b82f6", definition: "Providing emotional support during hard shifts.", love: "Positivity", dislike: "Toxicity" },
   "Direct Confidant": { domain: "Relationship", color: "bg-blue-500", border: "border-blue-200", hex: "#3b82f6", definition: "Building deep trust and psychological safety.", love: "Trust", dislike: "Betrayal" },
-  // Strategic
   "Data Validator": { domain: "Strategic", color: "bg-emerald-500", border: "border-emerald-200", hex: "#10b981", definition: "Analyzing data and planning for future care outcomes.", love: "Evidence", dislike: "Assumptions" },
   "Historical Expert": { domain: "Strategic", color: "bg-emerald-500", border: "border-emerald-200", hex: "#10b981", definition: "Using past experiences to guide current choices.", love: "Context", dislike: "Redundancy" },
   "Future-Care Visionary": { domain: "Strategic", color: "bg-emerald-500", border: "border-emerald-200", hex: "#10b981", definition: "Anticipating future trends in healthcare.", love: "Innovation", dislike: "The Status Quo" },
@@ -49,7 +46,6 @@ const DOMAIN_MAP: Record<string, { domain: string; color: string; border: string
   "Pathway Mapper": { domain: "Strategic", color: "bg-emerald-500", border: "border-emerald-200", hex: "#10b981", definition: "Designing the step-by-step route to reach goals.", love: "Planning", dislike: "Aimlessness" },
 };
 
-// --- FIX: Restored the missing CustomTooltip component ---
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -78,10 +74,18 @@ export default function ResultsDashboard() {
 
   useEffect(() => {
     async function fetchResults() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from('talent_dna_results').select('*').eq('user_id', user.id).maybeSingle();
-      if (data?.raw_scores_json) processResults(data.raw_scores_json);
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData?.user) return;
+      
+      const { data } = await supabase
+        .from('talent_dna_results')
+        .select('*')
+        .eq('user_id', authData.user.id)
+        .maybeSingle();
+
+      if (data?.raw_scores_json) {
+        processResults(data.raw_scores_json as Record<string, number>);
+      }
       setLoading(false);
     }
 
@@ -90,6 +94,8 @@ export default function ResultsDashboard() {
         .filter(([theme]) => TALENT_THEMES.includes(theme))
         .sort(([, a], [, b]) => b - a) as [string, number][];
       
+      if (baseSorted.length === 0) return;
+
       const top5Names = baseSorted.slice(0, 5).map(([name]) => name);
       const rec = getRecommendedTrack(top5Names);
       
@@ -131,18 +137,16 @@ export default function ResultsDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-1000 bg-white min-h-screen print:p-0">
-      
       <style jsx global>{`
         @media print {
           .no-print { display: none !important; }
-          body { background: white !important; margin: 0; padding: 0; }
+          body { background: white !important; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           .print-break-avoid { page-break-inside: avoid; }
           .print-full-width { width: 100% !important; max-width: 100% !important; border: none !important; box-shadow: none !important; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
         }
       `}</style>
 
+      {/* Header and Top 5 UI remains the same */}
       <header className="flex flex-col md:flex-row justify-between items-start mb-12 gap-6 no-print">
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-100">
@@ -187,12 +191,8 @@ export default function ResultsDashboard() {
                   <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                     <th className="px-8 py-4 w-16">#</th>
                     <th className="px-4 py-4">Theme</th>
-                    <th className="px-4 py-4 hidden md:table-cell">
-                       <span className="flex items-center gap-1 text-emerald-600"><Heart size={12}/> I Love</span>
-                    </th>
-                    <th className="px-4 py-4 hidden md:table-cell">
-                       <span className="flex items-center gap-1 text-rose-500"><AlertCircle size={12}/> I Dislike</span>
-                    </th>
+                    <th className="px-4 py-4 hidden md:table-cell">I Love</th>
+                    <th className="px-4 py-4 hidden md:table-cell">I Dislike</th>
                     <th className="px-8 py-4 text-right">Intensity</th>
                   </tr>
                 </thead>
@@ -206,12 +206,8 @@ export default function ResultsDashboard() {
                           <span className={`text-sm font-bold ${index < 5 ? 'text-indigo-600' : 'text-slate-800'}`}>{theme}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-xs text-emerald-700 font-medium italic hidden md:table-cell">
-                        {DOMAIN_MAP[theme]?.love}
-                      </td>
-                      <td className="px-4 py-4 text-xs text-rose-600 font-medium italic hidden md:table-cell">
-                        {DOMAIN_MAP[theme]?.dislike}
-                      </td>
+                      <td className="px-4 py-4 text-xs text-emerald-700 font-medium italic hidden md:table-cell">{DOMAIN_MAP[theme]?.love}</td>
+                      <td className="px-4 py-4 text-xs text-rose-600 font-medium italic hidden md:table-cell">{DOMAIN_MAP[theme]?.dislike}</td>
                       <td className="px-8 py-4 text-right">
                         <div className="w-20 h-1.5 bg-slate-100 rounded-full inline-block overflow-hidden no-print">
                           <div className={`h-full ${index < 5 ? 'bg-indigo-500' : 'bg-slate-300'}`} style={{ width: `${(score / (allTalentsSorted[0]?.[1] || 1)) * 100}%` }} />
@@ -226,16 +222,18 @@ export default function ResultsDashboard() {
         </div>
 
         <div className="lg:col-span-4 space-y-6">
-          <div className="bg-slate-900 text-white rounded-[2rem] p-8 shadow-xl border-t-4 border-indigo-500 print-break-avoid">
-            <p className="text-indigo-400 text-[10px] font-black uppercase mb-2 tracking-widest">Growth Pathway</p>
-            <h3 className="text-2xl font-black mb-4 leading-tight">{recommendation?.trackName}</h3>
-            <p className="text-slate-400 text-sm mb-6 italic leading-relaxed">
-              "Your high concentration of {top5[0]?.[0]} indicates a natural mastery for the {recommendation?.trackName} trajectory."
-            </p>
-            <button className="no-print w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
-              Accept Track <ArrowRight size={16} />
-            </button>
-          </div>
+          {recommendation && (
+            <div className="bg-slate-900 text-white rounded-[2rem] p-8 shadow-xl border-t-4 border-indigo-500 print-break-avoid">
+              <p className="text-indigo-400 text-[10px] font-black uppercase mb-2 tracking-widest">Growth Pathway</p>
+              <h3 className="text-2xl font-black mb-4 leading-tight">{recommendation.trackName}</h3>
+              <p className="text-slate-400 text-sm mb-6 italic leading-relaxed">
+                "Your high concentration of {top5[0]?.[0]} indicates a natural mastery for the {recommendation.trackName} trajectory."
+              </p>
+              <button className="no-print w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
+                Accept Track <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
 
           <DevelopmentPlan trackName={recommendation?.trackName} />
 
@@ -250,32 +248,16 @@ export default function ResultsDashboard() {
                     outerRadius={90}
                     paddingAngle={5}
                     dataKey="value"
-                    animationDuration={1500}
+                    isAnimationActive={false}
                   >
                     {domainStats.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} stroke="#fff" strokeWidth={2} />
                     ))}
-                    <LabelList 
-                      dataKey="value" 
-                      position="inside" 
-                      fill="#fff" 
-                      stroke="none" 
-                      fontSize={11} 
-                      fontWeight="900" 
-                      formatter={(val: number) => `${val * 10}%`} 
-                    />
+                    <LabelList dataKey="value" position="inside" fill="#fff" stroke="none" fontSize={11} fontWeight="900" formatter={(val: number) => `${val * 10}%`} />
                   </Pie>
                   <Tooltip />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
-            <div className="space-y-4 mt-4">
-              {domainStats.map((stat) => (
-                <div key={stat.name} className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stat.color }} />
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{stat.name}</span>
-                </div>
-              ))}
             </div>
           </div>
         </div>
@@ -313,6 +295,7 @@ export default function ResultsDashboard() {
                 dataKey="fullValue"
                 stroke="transparent"
                 fill="transparent"
+                isAnimationActive={false}
                 dot={(props: any) => {
                   const { cx, cy, payload } = props;
                   const isTop5 = top5.some(([name]) => name === payload.subject);
