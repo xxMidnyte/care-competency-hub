@@ -23,7 +23,14 @@ type SectionKey =
   | "quiz"
   | "policy"
   | "documentation"
-  | "evidence";
+  | "evidence"
+  | "reassignment";
+
+type GenerateMeta = {
+  tier?: string;
+  evidence?: string;
+  reassignment?: string;
+};
 
 type GenerateBody = {
   title: string;
@@ -33,8 +40,13 @@ type GenerateBody = {
   risk?: string;
   language?: string; // en, es, so, hmn
   sections?: SectionKey[]; // which sections to include
+  meta?: GenerateMeta; // ✅ NEW: tier/evidence/reassignment hints
   specialInstructions?: string;
 };
+
+function safeStr(v: unknown) {
+  return typeof v === "string" ? v : "";
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,14 +60,12 @@ export async function POST(req: NextRequest) {
       risk = "Medium",
       language = "en",
       sections,
+      meta,
       specialInstructions = "",
     } = body;
 
     if (!title || !title.trim()) {
-      return NextResponse.json(
-        { error: "Title is required." },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Title is required." }, { status: 400 });
     }
 
     if (!roles || !Array.isArray(roles) || roles.length === 0) {
@@ -68,7 +78,7 @@ export async function POST(req: NextRequest) {
     const requestedSections: SectionKey[] =
       (sections && sections.length
         ? sections
-        : [
+        : ([
             "objectives",
             "equipment",
             "procedure",
@@ -77,12 +87,15 @@ export async function POST(req: NextRequest) {
             "policy",
             "documentation",
             "evidence",
-          ]) as SectionKey[];
+            "reassignment",
+          ] as SectionKey[])) as SectionKey[];
 
-    const languageLabel =
-      LANGUAGE_LABELS[language] ?? "English";
-
+    const languageLabel = LANGUAGE_LABELS[language] ?? "English";
     const roleList = roles.join(", ");
+
+    const metaTier = safeStr(meta?.tier).trim();
+    const metaEvidence = safeStr(meta?.evidence).trim();
+    const metaReassign = safeStr(meta?.reassignment).trim();
 
     // 🔹 System prompt: define the job + output format
     const systemPrompt = `
@@ -103,7 +116,8 @@ The JSON shape MUST be:
   "quiz": string | null,
   "policy": string | null,
   "documentation": string | null,
-  "evidence": string | null
+  "evidence": string | null,
+  "reassignment": string | null
 }
 
 Rules:
@@ -113,11 +127,10 @@ Rules:
 - Focus on concise, practical, real-world language suitable for busy clinicians.
 - Use bullet points or numbered lists where appropriate.
 - For quiz questions, generate 4–8 short questions, no answers.
-- For quiz content, keep questions in ${languageLabel} as well.
 - Do NOT include any keys besides the ones listed above.
     `.trim();
 
-    // 🔹 User prompt: inject context from the UI
+    // 🔹 User prompt: inject context from the UI + meta hints
     const userPrompt = `
 Create a clinical competency for "${title}".
 
@@ -127,21 +140,25 @@ Context:
 - Risk level: ${risk}
 - Description: ${description || "No additional description provided."}
 - Target language: ${languageLabel}
-- Special instructions from the manager: ${
-      specialInstructions || "None provided."
-    }
+- Special instructions from the manager: ${specialInstructions || "None provided."}
+
+Library metadata (use these as guiding defaults; align your content to them):
+- Tier (label only): ${metaTier || "Not provided"}
+- Evidence (preferred): ${metaEvidence || "Not provided"}
+- Reassignment (preferred): ${metaReassign || "Not provided"}
 
 The caller only wants these sections (others must be null):
 ${requestedSections.join(", ")}
 
-Produce content that:
-- Is appropriate for the roles listed.
-- Reflects the risk level (more risk = more depth and rigor).
-- Is specific enough that a manager can evaluate competency.
-- Includes quiz questions that match the content of the competency.
+Quality rules:
+- Make it appropriate for the roles listed (and the setting).
+- Reflect the risk level (higher risk = more depth + stricter evaluation).
+- Make it specific enough a manager can evaluate competency.
+- If "evidence" is requested, ensure the evidence expectations match the preferred Evidence above (if provided).
+- If "reassignment" is requested, provide a clear reassignment rule that matches the preferred Reassignment above (if provided).
+- Keep language plain and actionable (avoid fluff).
 `.trim();
 
-    // 🔹 Call OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       response_format: { type: "json_object" },
@@ -161,7 +178,7 @@ Produce content that:
       );
     }
 
-    let parsed: Record<SectionKey, string | null>;
+    let parsed: Record<string, any>;
     try {
       parsed = JSON.parse(raw);
     } catch (err) {
@@ -174,7 +191,7 @@ Produce content that:
 
     // 🔹 Safety: enforce structure + filter sections
     const result: Record<SectionKey, string | null> = {
-      purpose: parsed.purpose || "",
+      purpose: safeStr(parsed.purpose) || "",
       objectives: null,
       equipment: null,
       procedure: null,
@@ -183,9 +200,9 @@ Produce content that:
       policy: null,
       documentation: null,
       evidence: null,
+      reassignment: null,
     };
 
-    // Only keep the requested sections (others → null)
     ([
       "objectives",
       "equipment",
@@ -195,9 +212,10 @@ Produce content that:
       "policy",
       "documentation",
       "evidence",
+      "reassignment",
     ] as SectionKey[]).forEach((key) => {
-      if (requestedSections.includes(key) && parsed[key]) {
-        result[key] = parsed[key] as string;
+      if (requestedSections.includes(key) && safeStr(parsed[key]).trim()) {
+        result[key] = safeStr(parsed[key]);
       } else {
         result[key] = null;
       }
@@ -212,6 +230,10 @@ Produce content that:
           setting,
           risk,
           language,
+          // ✅ echo back the library meta for convenience / logging
+          tier: metaTier || null,
+          evidence: metaEvidence || null,
+          reassignment: metaReassign || null,
         },
       },
       { status: 200 }

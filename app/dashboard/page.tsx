@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -24,6 +23,9 @@ const ROUTES = {
   createCompetency: "/dashboard/competencies/new",
   aiBuilder: "/dashboard/competencies/ai-builder",
   surveyPocs: "/dashboard/deficiencies",
+  // New DNA Routes
+  dnaQuiz: "/dashboard/talent-dna/quiz",
+  dnaResults: "/dashboard/talent-dna/results",
 };
 
 type OnboardingFlags = {
@@ -34,9 +36,6 @@ type OnboardingFlags = {
   report: boolean;
 };
 
-const chip =
-  "rounded-full border border-border bg-muted px-4 py-2 text-[12px] font-medium text-foreground";
-
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -45,6 +44,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  
+  // NEW: Track DNA completion status
+  const [hasCompletedDna, setHasCompletedDna] = useState(false);
 
   const [onboardingFlags, setOnboardingFlags] = useState<OnboardingFlags>({
     facility: false,
@@ -83,28 +85,34 @@ export default function DashboardPage() {
 
       setProfile(currentProfile);
 
-      const orgId = currentProfile.org_id;
+      // --- CHECK TALENT DNA STATUS ---
+      const { data: dnaData } = await supabase
+        .from("talent_dna_results")
+        .select("id")
+        .eq("user_id", user.id)
+        .limit(1);
 
+      setHasCompletedDna(!!dnaData && dnaData.length > 0);
+      // -------------------------------
+
+      const orgId = currentProfile.org_id;
       let hasFacility = false;
       let hasStaff = false;
 
       if (orgId) {
-        const { data: facs, error: facError } = await supabase
+        const { data: facs } = await supabase
           .from("facilities")
           .select("id")
           .eq("org_id", orgId)
           .limit(1);
+        if (facs && facs.length > 0) hasFacility = true;
 
-        if (!facError && facs && facs.length > 0) hasFacility = true;
-
-        // ✅ staff_members (not staff)
-        const { data: staffRows, error: staffError } = await supabase
+        const { data: staffRows } = await supabase
           .from("staff_members")
           .select("id")
           .eq("org_id", orgId)
           .limit(1);
-
-        if (!staffError && staffRows && staffRows.length > 0) hasStaff = true;
+        if (staffRows && staffRows.length > 0) hasStaff = true;
       }
 
       const flags: OnboardingFlags = {
@@ -145,56 +153,26 @@ export default function DashboardPage() {
   }, [router]);
 
   const isAdmin = roleLabel.toLowerCase() === "admin";
-
   const subtitle = isAdmin
     ? "High-level view of your organization, facilities, and competency workload."
     : "High-level view of your facilities and competency workload.";
 
   const checklistSteps = [
-    {
-      id: "facility",
-      label: "Add your facility",
-      completed: onboardingFlags.facility,
-    },
-    {
-      id: "staff",
-      label: "Import or add staff",
-      completed: onboardingFlags.staff,
-    },
-    {
-      id: "assign",
-      label: "Assign starter competencies",
-      completed: onboardingFlags.assign,
-    },
-    {
-      id: "invite",
-      label: "Invite staff to log in",
-      completed: onboardingFlags.invite,
-    },
-    {
-      id: "report",
-      label: "Review your dashboard report",
-      completed: onboardingFlags.report,
-    },
+    { id: "facility", label: "Add your facility", completed: onboardingFlags.facility },
+    { id: "staff", label: "Import or add staff", completed: onboardingFlags.staff },
+    { id: "assign", label: "Assign starter competencies", completed: onboardingFlags.assign },
+    { id: "invite", label: "Invite staff to log in", completed: onboardingFlags.invite },
+    { id: "report", label: "Review your dashboard report", completed: onboardingFlags.report },
   ];
 
   const handleChecklistStepClick = (id: string) => {
     switch (id) {
-      case "facility":
-        router.push(ROUTES.facilities);
-        break;
+      case "facility": router.push(ROUTES.facilities); break;
       case "staff":
-      case "invite":
-        router.push(ROUTES.staff);
-        break;
-      case "assign":
-        router.push(ROUTES.assign);
-        break;
-      case "report":
-        router.push(ROUTES.reports);
-        break;
-      default:
-        break;
+      case "invite": router.push(ROUTES.staff); break;
+      case "assign": router.push(ROUTES.assign); break;
+      case "report": router.push(ROUTES.reports); break;
+      default: break;
     }
   };
 
@@ -258,7 +236,7 @@ export default function DashboardPage() {
 
         {/* Main grid */}
         <div className="grid gap-6 lg:grid-cols-[2.1fr,1.3fr]">
-          {/* Snapshot */}
+          {/* Snapshot Card */}
           <Card className="p-4">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="space-y-1">
@@ -269,7 +247,6 @@ export default function DashboardPage() {
                   Overview for your currently selected facility.
                 </div>
               </div>
-
               <Button
                 variant="secondary"
                 size="xs"
@@ -281,39 +258,18 @@ export default function DashboardPage() {
 
             <div className="grid gap-3 md:grid-cols-3">
               <Card className="border-border bg-muted/30 p-4 shadow-none">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Competencies overdue
-                </div>
-                <div className="mt-3 text-3xl font-semibold text-foreground">
-                  18
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Staff are past due on these items.
-                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Competencies overdue</div>
+                <div className="mt-3 text-3xl font-semibold text-foreground">18</div>
               </Card>
 
               <Card className="border-border bg-muted/30 p-4 shadow-none">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Due this month
-                </div>
-                <div className="mt-3 text-3xl font-semibold text-foreground">
-                  42
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Items coming due in the next 30 days.
-                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Due this month</div>
+                <div className="mt-3 text-3xl font-semibold text-foreground">42</div>
               </Card>
 
               <Card className="border-border bg-muted/30 p-4 shadow-none">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  On track
-                </div>
-                <div className="mt-3 text-3xl font-semibold text-foreground">
-                  86%
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  Staff who are fully up to date.
-                </div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">On track</div>
+                <div className="mt-3 text-3xl font-semibold text-foreground">86%</div>
               </Card>
             </div>
           </Card>
@@ -325,8 +281,23 @@ export default function DashboardPage() {
             </div>
 
             <div className="mt-4 space-y-3">
+              {/* SMART TALENT DNA BUTTON */}
               <Button
                 variant="primary"
+                className="w-full justify-between bg-indigo-600 hover:bg-indigo-700 text-white border-none"
+                onClick={() => router.push(hasCompletedDna ? ROUTES.dnaResults : ROUTES.dnaQuiz)}
+              >
+                <div className="flex items-center gap-2">
+                  <span>✨</span>
+                  <span className="font-semibold">Talent DNA</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-tighter opacity-90">
+                  {hasCompletedDna ? "View Reports" : "Take Quiz"}
+                </span>
+              </Button>
+
+              <Button
+                variant="secondary"
                 className="w-full justify-between"
                 onClick={() => router.push(ROUTES.createCompetency)}
               >
@@ -349,9 +320,7 @@ export default function DashboardPage() {
                 onClick={() => router.push(ROUTES.assign)}
               >
                 <span>Assign competencies</span>
-                <span className="text-xs text-muted-foreground">
-                  Staff &amp; roles
-                </span>
+                <span className="text-xs text-muted-foreground">Staff &amp; roles</span>
               </Button>
 
               <Button
@@ -360,9 +329,7 @@ export default function DashboardPage() {
                 onClick={() => router.push(ROUTES.surveyPocs)}
               >
                 <span>Survey &amp; POCs</span>
-                <span className="text-xs text-muted-foreground">
-                  Tags &amp; corrections
-                </span>
+                <span className="text-xs text-muted-foreground">Tags &amp; corrections</span>
               </Button>
             </div>
           </Card>

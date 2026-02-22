@@ -467,8 +467,7 @@ export default function AssignmentsPage() {
   }
 
   function handleViewDetails(a: AssignmentCard) {
-    if (!a.competencyId) return;
-    router.push(`/dashboard/library/${a.competencyId}`);
+    router.push(`/dashboard/assignments/${a.id}`);
   }
 
   return (

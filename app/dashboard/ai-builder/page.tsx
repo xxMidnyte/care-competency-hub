@@ -1,7 +1,7 @@
 // app/dashboard/ai-builder/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import { useOrg } from "@/hooks/useOrg";
@@ -40,6 +40,7 @@ const LANGUAGE_OPTIONS = [
 ];
 
 const SECTION_OPTIONS = [
+  // NOTE: purpose always on (handled below)
   { key: "purpose", label: "Purpose" },
   { key: "objectives", label: "Learning objectives" },
   { key: "equipment", label: "Required equipment" },
@@ -49,10 +50,12 @@ const SECTION_OPTIONS = [
   { key: "policy", label: "Policy references" },
   { key: "documentation", label: "Documentation expectations" },
   { key: "evidence", label: "Evidence requirements" },
+  // ✅ NEW (so it can be generated/edited like everything else)
+  { key: "reassignment", label: "Reassignment / frequency" },
 ];
 
 type GeneratedContent = {
-  [key: string]: string | null;
+  [key: string]: any; // allow meta object
 };
 
 const SECTION_LABEL_MAP: Record<string, string> = SECTION_OPTIONS.reduce(
@@ -86,6 +89,31 @@ const accentBtn =
   "inline-flex items-center justify-center rounded-full bg-primary px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-primary-foreground shadow-card transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
 
 // ------------------------------
+// Meta defaults (Tier / Evidence / Reassignment)
+// ------------------------------
+function defaultTierFrom(risk: string) {
+  const r = (risk || "").toLowerCase();
+  if (r === "critical") return "Tier 1 — Survey/Critical";
+  if (r === "high") return "Tier 1 — High Risk";
+  if (r === "medium") return "Tier 2 — Standard";
+  return "Tier 3 — Low Risk";
+}
+
+function defaultEvidenceFrom(risk: string) {
+  const r = (risk || "").toLowerCase();
+  if (r === "critical" || r === "high") return "Observation + return demo checklist";
+  if (r === "medium") return "Knowledge check + observation (as applicable)";
+  return "Attestation or knowledge check";
+}
+
+function defaultReassignFrom(risk: string) {
+  const r = (risk || "").toLowerCase();
+  if (r === "critical" || r === "high") return "Annual + after incident/near-miss";
+  if (r === "medium") return "Annual";
+  return "Annual (or per policy)";
+}
+
+// ------------------------------
 // Main Component
 // ------------------------------
 export default function AIGeneratorPage() {
@@ -103,6 +131,11 @@ export default function AIGeneratorPage() {
     SECTION_OPTIONS.map((s) => s.key).filter((k) => k !== "purpose") // purpose always on
   );
   const [specialInstructions, setSpecialInstructions] = useState("");
+
+  // ✅ NEW meta fields
+  const [tier, setTier] = useState("");
+  const [evidenceMeta, setEvidenceMeta] = useState("");
+  const [reassignmentMeta, setReassignmentMeta] = useState("");
 
   // AI + editing state
   const [generated, setGenerated] = useState<GeneratedContent>({});
@@ -142,6 +175,16 @@ export default function AIGeneratorPage() {
 
     checkAuth();
   }, [router]);
+
+  // ------------------------------
+  // ✅ Keep meta defaults synced with risk (only if user hasn't typed their own)
+  // ------------------------------
+  useEffect(() => {
+    setTier((prev) => prev || defaultTierFrom(risk));
+    setEvidenceMeta((prev) => prev || defaultEvidenceFrom(risk));
+    setReassignmentMeta((prev) => prev || defaultReassignFrom(risk));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [risk]);
 
   // ------------------------------
   // Helpers
@@ -202,6 +245,12 @@ export default function AIGeneratorPage() {
           risk,
           language,
           sections: ["purpose", ...selectedSections],
+          // ✅ pass meta hints so model can align outputs
+          meta: {
+            tier: tier || defaultTierFrom(risk),
+            evidence: evidenceMeta || defaultEvidenceFrom(risk),
+            reassignment: reassignmentMeta || defaultReassignFrom(risk),
+          },
           specialInstructions,
         }),
       });
@@ -221,7 +270,17 @@ export default function AIGeneratorPage() {
         )
       ) as GeneratedContent;
 
-      setGenerated(cleaned);
+      // ✅ Inject meta into the generated payload so the library UI always has it
+      const meta = {
+        tier: tier || defaultTierFrom(risk),
+        evidence: evidenceMeta || defaultEvidenceFrom(risk),
+        reassignment: reassignmentMeta || defaultReassignFrom(risk),
+      };
+
+      setGenerated({
+        meta,
+        ...cleaned,
+      });
     } catch (err) {
       console.error("Network error:", err);
       setSaveError("Network error talking to AI.");
@@ -249,6 +308,16 @@ export default function AIGeneratorPage() {
       return;
     }
 
+    // ✅ Ensure meta is always present even if user never clicked generate again
+    const ensuredGenerated = {
+      meta: {
+        tier: tier || defaultTierFrom(risk),
+        evidence: evidenceMeta || defaultEvidenceFrom(risk),
+        reassignment: reassignmentMeta || defaultReassignFrom(risk),
+      },
+      ...generated,
+    };
+
     const payload = {
       title,
       description,
@@ -256,7 +325,7 @@ export default function AIGeneratorPage() {
       setting,
       risk,
       language,
-      sections: generated,
+      sections: ensuredGenerated,
       org_id: organizationId,
     };
 
@@ -298,6 +367,11 @@ export default function AIGeneratorPage() {
   const isManagerOrAdmin = role === "admin" || role === "manager";
 
   const stillLoading = orgLoading || !authChecked;
+
+  // Helpful label for Language tag
+  const languageLabel = useMemo(() => {
+    return LANGUAGE_OPTIONS.find((l) => l.value === language)?.label ?? language;
+  }, [language]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -459,6 +533,46 @@ export default function AIGeneratorPage() {
                 </select>
               </div>
 
+              {/* ✅ META (Tier / Evidence / Reassignment) */}
+              <div className={`${subcard} p-4 space-y-3`}>
+                <div>
+                  <div className={label}>Library metadata</div>
+                  <p className={helper}>
+                    These power the library “at-a-glance” view (Tier · Evidence · Reassignment).
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className={label}>Tier</label>
+                  <input
+                    className={input}
+                    value={tier}
+                    onChange={(e) => setTier(e.target.value)}
+                    placeholder="e.g. Tier 1 — Survey/Critical"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className={label}>Evidence</label>
+                  <input
+                    className={input}
+                    value={evidenceMeta}
+                    onChange={(e) => setEvidenceMeta(e.target.value)}
+                    placeholder="e.g. Observation + return demo checklist"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className={label}>Reassignment</label>
+                  <input
+                    className={input}
+                    value={reassignmentMeta}
+                    onChange={(e) => setReassignmentMeta(e.target.value)}
+                    placeholder="e.g. Annual + after incident/near-miss"
+                  />
+                </div>
+              </div>
+
               {/* Sections */}
               <div className="space-y-1">
                 <label className={label}>Sections</label>
@@ -486,7 +600,7 @@ export default function AIGeneratorPage() {
                 <textarea
                   className={textarea}
                   rows={3}
-                  placeholder='e.g. "Focus heavily on infection control and update for 2025 CMS changes. Keep language simple for CNAs."'
+                  placeholder='e.g. "Focus heavily on infection control. Keep language simple for CNAs."'
                   value={specialInstructions}
                   onChange={(e) => setSpecialInstructions(e.target.value)}
                 />
@@ -524,9 +638,7 @@ export default function AIGeneratorPage() {
                     <button
                       type="button"
                       onClick={() =>
-                        router.push(
-                          `/dashboard/library?highlight=${savedCompetencyId}`
-                        )
+                        router.push(`/dashboard/library?highlight=${savedCompetencyId}`)
                       }
                       className={secondaryBtn}
                     >
@@ -618,17 +730,44 @@ export default function AIGeneratorPage() {
                           </span>
                         )}
 
-                        {language && (
-                          <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
-                            {LANGUAGE_OPTIONS.find((l) => l.value === language)
-                              ?.label ?? language}
-                          </span>
-                        )}
+                        <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-primary">
+                          {languageLabel}
+                        </span>
+                      </div>
+
+                      {/* ✅ Meta preview */}
+                      <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                        <div className="rounded-xl border border-border bg-card px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Tier
+                          </div>
+                          <div className="mt-1 text-xs text-foreground/90">
+                            {tier || defaultTierFrom(risk)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-border bg-card px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Evidence
+                          </div>
+                          <div className="mt-1 text-xs text-foreground/90">
+                            {evidenceMeta || defaultEvidenceFrom(risk)}
+                          </div>
+                        </div>
+                        <div className="rounded-xl border border-border bg-card px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                            Reassignment
+                          </div>
+                          <div className="mt-1 text-xs text-foreground/90">
+                            {reassignmentMeta || defaultReassignFrom(risk)}
+                          </div>
+                        </div>
                       </div>
                     </div>
 
                     {/* Sections with inline editing */}
                     {Object.entries(generated).map(([sectionKey, content]) => {
+                      // hide meta object from the normal section list
+                      if (sectionKey === "meta") return null;
                       if (!content || !String(content).trim()) return null;
 
                       const labelText =
@@ -688,7 +827,7 @@ export default function AIGeneratorPage() {
                             />
                           ) : (
                             <pre className="whitespace-pre-wrap text-xs leading-relaxed text-foreground/90">
-                              {content}
+                              {String(content)}
                             </pre>
                           )}
                         </div>

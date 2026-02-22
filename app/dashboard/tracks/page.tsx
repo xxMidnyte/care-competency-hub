@@ -1,4 +1,3 @@
-// app/dashboard/tracks/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -92,7 +91,6 @@ export default function TracksPage() {
       if (tErr) console.error("Tracks load error:", tErr);
       setTracks((tData as Track[]) || []);
 
-      // Pull assignments once so we can show “10k foot” counts on this page.
       const { data: aData, error: aErr } = await supabase
         .from("track_assignments")
         .select("id, track_id, status, due_date");
@@ -179,8 +177,24 @@ export default function TracksPage() {
           <div className="flex flex-wrap items-center gap-2">
             {canManage ? (
               <>
-                <button type="button" onClick={() => router.push("/dashboard/tracks/overview")} className={btnSoft}>
+                <button 
+                  type="button" 
+                  onClick={() => router.push("/dashboard/tracks/overview")} 
+                  className={btnSoft}
+                >
                   Org Overview
+                </button>
+                {/* NEW BUILDER BUTTON */}
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    // If you have a specific "default" builder or want to go to the most recent
+                    const targetId = tracks[0]?.id || 'new';
+                    router.push(`/dashboard/tracks/${targetId}/builder`);
+                  }} 
+                  className={btnSoft}
+                >
+                  Track Builder
                 </button>
                 <button type="button" onClick={() => router.push("/dashboard/tracks/new")} className={btnPrimary}>
                   Create track
