@@ -269,7 +269,7 @@ function FlowDiagram({ rows }: { rows: FlowRow[] }) {
                           : 8);
 
                       const x2 = xBucket;
-                      const y2 = bucketY[k as any];
+                      const y2 = bucketY[k as keyof typeof bucketY];
 
                       return (
                         <path
