@@ -32,70 +32,6 @@ type AssignmentCard = {
   dbStatus: string | null;
 };
 
-// --- temporary mock data (used only if we have no real rows yet) ---
-const mockAssignments: AssignmentCard[] = [
-  {
-    id: "1",
-    staffId: null,
-    competencyId: null,
-    facilityId: null,
-    staffName: "Alex Johnson",
-    competencyTitle: "Wound care – basic",
-    facilityName: "CareCompetencyHub Demo – Home Health",
-    role: "RN",
-    discipline: "Nursing",
-    dueDate: "2025-11-10",
-    status: "overdue",
-    risk: "High",
-    dbStatus: "assigned",
-  },
-  {
-    id: "2",
-    staffId: null,
-    competencyId: null,
-    facilityId: null,
-    staffName: "Maria Lopez",
-    competencyTitle: "Medication administration",
-    facilityName: "CareCompetencyHub Demo – SNF",
-    role: "LPN",
-    discipline: "Nursing",
-    dueDate: "2025-11-30",
-    status: "due_soon",
-    risk: "Medium",
-    dbStatus: "assigned",
-  },
-  {
-    id: "3",
-    staffId: null,
-    competencyId: null,
-    facilityId: null,
-    staffName: "Sam Patel",
-    competencyTitle: "OASIS documentation accuracy",
-    facilityName: "CareCompetencyHub Demo – Home Health",
-    role: "PT",
-    discipline: "Therapy",
-    dueDate: "2025-12-15",
-    status: "on_track",
-    risk: "High",
-    dbStatus: "assigned",
-  },
-  {
-    id: "4",
-    staffId: null,
-    competencyId: null,
-    facilityId: null,
-    staffName: "Jordan Lee",
-    competencyTitle: "Fall prevention & safety",
-    facilityName: "CareCompetencyHub Demo – SNF",
-    role: "CNA",
-    discipline: "Nursing",
-    dueDate: "2025-10-01",
-    status: "completed",
-    risk: "Low",
-    dbStatus: "completed",
-  },
-];
-
 const statusLabels: Record<Status, string> = {
   overdue: "Overdue",
   due_soon: "Due this month",
@@ -303,12 +239,6 @@ export default function AssignmentsPage() {
         // Cast via unknown to satisfy TS when Supabase join shapes vary.
         const rows = (data || []) as unknown as DBAssignmentRow[];
 
-        if (rows.length === 0) {
-          setAssignments(mockAssignments);
-          setLoading(false);
-          return;
-        }
-
         const mapped: AssignmentCard[] = rows.map((row) => {
           const staff = firstOrNull(row.staff_members);
           const facility = firstOrNull(staff?.facilities);
@@ -417,9 +347,8 @@ export default function AssignmentsPage() {
     setModalError(null);
     if (!editing) return;
 
-    // demo row
     if (!editing.staffId || !editing.competencyId) {
-      setModalError("This is demo data. Create a real assignment to update status.");
+      setModalError("This assignment is missing its staff or competency link and can't be updated.");
       return;
     }
 
@@ -632,7 +561,7 @@ export default function AssignmentsPage() {
                           size="xs"
                           onClick={() => handleViewDetails(a)}
                           disabled={!a.competencyId}
-                          title={!a.competencyId ? "Demo assignment" : "View competency"}
+                          title={!a.competencyId ? "Missing competency link" : "View competency"}
                         >
                           View details
                         </Button>

@@ -83,6 +83,7 @@ Return your answer as a strict JSON object with this exact shape and nothing els
     // 3) Call OpenAI via chat.completions
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
