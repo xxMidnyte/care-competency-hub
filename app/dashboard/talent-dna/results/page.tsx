@@ -115,7 +115,7 @@ export default function ResultsDashboard() {
   if (loading) return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center">
       <Loader2 className="animate-spin text-indigo-600 mb-4" size={40} />
-      <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Decoding DNA...</p>
+      <p className="text-foreground/60 font-bold uppercase tracking-widest text-xs">Decoding DNA...</p>
     </div>
   );
 
@@ -124,19 +124,19 @@ export default function ResultsDashboard() {
   const { allTalentsSorted, top5, dnaChartData, domainStats, recommendation, powerPairing } = processedData;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-8 bg-white min-h-screen print:p-0">
+    <div className="max-w-7xl mx-auto p-4 md:p-8 bg-card min-h-screen print:p-0">
       
       <header className="flex flex-col md:flex-row justify-between items-start mb-12 gap-6 no-print">
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest mb-4 border border-indigo-100">
             Assessment Complete
           </div>
-          <h1 className="text-4xl font-extrabold text-slate-900 mb-3 tracking-tight">Your Talent DNA Profile</h1>
-          <p className="text-slate-500 text-lg max-w-2xl leading-relaxed">
+          <h1 className="text-4xl font-extrabold text-foreground mb-3 tracking-tight">Your Talent DNA Profile</h1>
+          <p className="text-foreground/60 text-lg max-w-2xl leading-relaxed">
             Your unique clinical fingerprint based on your natural recurring patterns of behavior.
           </p>
         </div>
-        <button onClick={() => window.print()} className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg">
+        <button onClick={() => window.print()} className="flex items-center gap-2 bg-indigo-600 text-foreground px-6 py-3 rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all shadow-lg">
           <Printer size={16} /> Print Full Report
         </button>
       </header>
@@ -145,9 +145,9 @@ export default function ResultsDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-12 print-break-avoid">
         {top5.map(([name], index) => (
           <div key={name} className={`relative p-6 rounded-2xl border-2 text-center transition-all ${
-            index === 0 ? 'bg-indigo-600 border-indigo-600 text-white shadow-xl' : 'bg-white border-slate-100 text-slate-800'
+            index === 0 ? 'bg-indigo-600 border-indigo-600 text-foreground shadow-xl' : 'bg-card border-border text-foreground/85'
           }`}>
-            <div className={`mx-auto w-10 h-10 rounded-full mb-3 flex items-center justify-center ${index === 0 ? 'bg-white/20' : 'bg-indigo-50 text-indigo-500'}`}>
+            <div className={`mx-auto w-10 h-10 rounded-full mb-3 flex items-center justify-center ${index === 0 ? 'bg-card/20' : 'bg-indigo-50 text-indigo-500'}`}>
               {index === 0 ? <Award size={20} /> : <Zap size={20} />}
             </div>
             <p className="text-[9px] uppercase font-black tracking-widest mb-1 opacity-60">Theme {index + 1}</p>
@@ -159,17 +159,17 @@ export default function ResultsDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
         {/* Left Column: Talent Sequence Table */}
         <div className="lg:col-span-8 space-y-8">
-          <section className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <section className="bg-card rounded-3xl border border-border overflow-hidden shadow-sm">
+            <div className="p-8 border-b border-border bg-muted/50 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <BarChart3 className="text-indigo-600" size={20} />
-                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Full Talent Sequence</h2>
+                <h2 className="text-xl font-black text-foreground uppercase tracking-tight">Full Talent Sequence</h2>
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                  <tr className="text-[10px] font-black uppercase tracking-widest text-foreground/50 border-b border-border">
                     <th className="px-8 py-4 w-16">#</th>
                     <th className="px-4 py-4">Theme</th>
                     <th className="px-4 py-4 hidden md:table-cell">I Love</th>
@@ -179,20 +179,20 @@ export default function ResultsDashboard() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {allTalentsSorted.map(([theme, score], index) => (
-                    <tr key={theme} className={`hover:bg-slate-50/80 transition-colors ${index < 5 ? 'bg-indigo-50/30' : ''}`}>
-                      <td className="px-8 py-4 text-[10px] font-black text-slate-300">{index + 1}</td>
+                    <tr key={theme} className={`hover:bg-muted/80 transition-colors ${index < 5 ? 'bg-indigo-50/30' : ''}`}>
+                      <td className="px-8 py-4 text-[10px] font-black text-foreground/80">{index + 1}</td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: DOMAIN_MAP[theme]?.hex || '#cbd5e1' }} />
-                          <span className={`text-sm font-bold ${index < 5 ? 'text-indigo-600' : 'text-slate-800'}`}>{theme}</span>
+                          <span className={`text-sm font-bold ${index < 5 ? 'text-indigo-600' : 'text-foreground/85'}`}>{theme}</span>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-xs text-emerald-700 font-medium italic hidden md:table-cell">{DOMAIN_MAP[theme]?.love || 'N/A'}</td>
                       <td className="px-4 py-4 text-xs text-rose-600 font-medium italic hidden md:table-cell">{DOMAIN_MAP[theme]?.dislike || 'N/A'}</td>
                       <td className="px-8 py-4 text-right">
-                        <div className="w-24 h-2 bg-slate-100 rounded-full inline-block overflow-hidden relative border border-slate-200">
+                        <div className="w-24 h-2 bg-muted rounded-full inline-block overflow-hidden relative border border-border">
                           <div 
-                            className={`h-full absolute left-0 top-0 ${index < 5 ? 'bg-indigo-500' : 'bg-slate-300'}`} 
+                            className={`h-full absolute left-0 top-0 ${index < 5 ? 'bg-indigo-500' : 'bg-muted'}`} 
                             style={{ width: `${(score / (allTalentsSorted[0]?.[1] || 1)) * 100}%` }} 
                           />
                         </div>
@@ -208,10 +208,10 @@ export default function ResultsDashboard() {
         {/* Right Column: Insights & Plan */}
         <div className="lg:col-span-4 space-y-6">
           {recommendation && (
-            <div className="bg-slate-900 text-white rounded-[2rem] p-8 shadow-xl border-t-4 border-indigo-500 print-break-avoid">
+            <div className="bg-card text-foreground rounded-[2rem] p-8 shadow-xl border-t-4 border-indigo-500 print-break-avoid">
               <p className="text-indigo-400 text-[10px] font-black uppercase mb-2 tracking-widest">Growth Pathway</p>
               <h3 className="text-2xl font-black mb-4 leading-tight">{recommendation?.trackName}</h3>
-              <p className="text-slate-400 text-sm mb-6 italic leading-relaxed">
+              <p className="text-foreground/50 text-sm mb-6 italic leading-relaxed">
                 "Your {top5[0]?.[0]} drive suggests a natural mastery for this trajectory."
               </p>
               <button className="no-print w-full bg-indigo-600 hover:bg-indigo-500 py-4 rounded-xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
@@ -226,18 +226,18 @@ export default function ResultsDashboard() {
                 <Sparkles size={120} />
               </div>
               <div className="relative z-10">
-                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-white border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-widest mb-4">
+                <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-card border border-indigo-100 text-indigo-600 text-[9px] font-black uppercase tracking-widest mb-4">
                   Unique Synergy
                 </div>
-                <h4 className="text-xl font-black text-slate-900 leading-tight mb-3">
+                <h4 className="text-xl font-black text-foreground leading-tight mb-3">
                   {powerPairing.title}
                 </h4>
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="text-[10px] font-bold px-2 py-1 bg-indigo-600 text-white rounded-lg">{top5[0]?.[0]}</span>
-                  <span className="text-slate-400 font-black">+</span>
-                  <span className="text-[10px] font-bold px-2 py-1 bg-white border border-indigo-200 text-indigo-600 rounded-lg">{top5[1]?.[0]}</span>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-indigo-600 text-foreground rounded-lg">{top5[0]?.[0]}</span>
+                  <span className="text-foreground/50 font-black">+</span>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-card border border-indigo-200 text-indigo-600 rounded-lg">{top5[1]?.[0]}</span>
                 </div>
-                <p className="text-slate-600 text-sm leading-relaxed font-medium">
+                <p className="text-foreground/65 text-sm leading-relaxed font-medium">
                   {powerPairing.insight}
                 </p>
               </div>
@@ -247,8 +247,8 @@ export default function ResultsDashboard() {
           <DevelopmentPlan trackName={recommendation?.trackName || ''} />
 
           {/* Domain Intensity Chart */}
-          <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm print-break-avoid">
-            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-900 mb-6 text-center">Domain Intensity</h4>
+          <div className="bg-card rounded-[2rem] p-8 border border-border shadow-sm print-break-avoid">
+            <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground mb-6 text-center">Domain Intensity</h4>
             <div className="h-48 w-full mb-6">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -281,9 +281,9 @@ export default function ResultsDashboard() {
                 <div key={domain.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: domain.color }} />
-                    <span className="text-[9px] font-black uppercase text-slate-600">{domain.name}</span>
+                    <span className="text-[9px] font-black uppercase text-foreground/65">{domain.name}</span>
                   </div>
-                  <span className="text-[9px] font-mono font-bold text-slate-400">{domain.value * 10}%</span>
+                  <span className="text-[9px] font-mono font-bold text-foreground/50">{domain.value * 10}%</span>
                 </div>
               ))}
             </div>
@@ -292,13 +292,13 @@ export default function ResultsDashboard() {
       </div>
 
       {/* Radar Map Section */}
-      <section className="bg-white rounded-3xl border border-slate-200 p-8 md:p-12 shadow-sm print:break-before-page overflow-visible relative mb-12">
-        <div className="flex items-center justify-between mb-8 border-b border-slate-100 pb-6">
+      <section className="bg-card rounded-3xl border border-border p-8 md:p-12 shadow-sm print:break-before-page overflow-visible relative mb-12">
+        <div className="flex items-center justify-between mb-8 border-b border-border pb-6">
           <div className="flex items-center gap-4">
             <Activity className="text-indigo-600" size={28} />
             <div>
-              <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Full Talent DNA Map</h2>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">360° View of Clinical Strengths</p>
+              <h2 className="text-2xl font-black text-foreground uppercase tracking-tight">Full Talent DNA Map</h2>
+              <p className="text-foreground/50 text-xs font-bold uppercase tracking-widest">360° View of Clinical Strengths</p>
             </div>
           </div>
         </div>

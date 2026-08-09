@@ -79,23 +79,23 @@ export function DashboardSidebar() {
 
   if (loading) {
     return (
-      <aside className="w-[240px] border-r bg-slate-100/90 dark:bg-slate-950/95 px-3 py-4">
+      <aside className="w-[240px] border-r border-border bg-card px-3 py-4">
         <div className="animate-pulse space-y-4">
-          <div className="h-4 w-32 bg-slate-200 dark:bg-slate-800 rounded" />
-          <div className="h-8 w-full bg-slate-200 dark:bg-slate-800 rounded-xl" />
+          <div className="h-4 w-32 bg-muted rounded" />
+          <div className="h-8 w-full bg-muted rounded-xl" />
         </div>
       </aside>
     );
   }
 
   return (
-    <aside className="w-[240px] border-r bg-slate-100/90 text-slate-900 border-slate-200 dark:bg-slate-950/95 dark:text-slate-100 dark:border-slate-900 px-3 py-4 text-sm overflow-y-auto h-full">
+    <aside className="w-[240px] border-r border-border bg-card text-foreground px-3 py-4 text-sm overflow-y-auto h-full">
       {/* HEADER */}
       <div className="mb-6 px-2">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-500 dark:text-emerald-400">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           {orgName || "CareCompetencyHub"}
         </p>
-        <p className="mt-1 text-[11px] text-slate-500 font-medium lowercase">
+        <p className="mt-1 text-[11px] text-muted-foreground font-medium lowercase">
           {role ? `${role} workspace` : "user workspace"}
         </p>
       </div>
@@ -103,7 +103,7 @@ export function DashboardSidebar() {
       <div className="space-y-5">
         {/* SECTION: PERSONAL */}
         <div>
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Me</p>
+          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Me</p>
           <nav className="space-y-1">
             <SidebarLink
               href={personalDashHref}
@@ -124,7 +124,7 @@ export function DashboardSidebar() {
         {/* SECTION: ORGANIZATION (Managers/Admins Only) */}
         {isManager && (
           <div>
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Organization</p>
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Organization</p>
             <nav className="space-y-1">
               <SidebarLink
                 href="/dashboard"
@@ -144,7 +144,7 @@ export function DashboardSidebar() {
 
         {/* SECTION: OPERATIONS */}
         <div>
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Operations</p>
+          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Operations</p>
           <nav className="space-y-1">
             <SidebarLink
               href="/dashboard/facilities"
@@ -194,7 +194,7 @@ export function DashboardSidebar() {
         {/* SECTION: SETTINGS */}
         {isManager && (
           <div>
-            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Admin</p>
+            <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Admin</p>
             <nav className="space-y-1">
               <SidebarLink
                 href="/dashboard/settings"
@@ -217,11 +217,11 @@ function SidebarLink({ href, label, icon, active, isNew }: SidebarLinkProps) {
       className={classNames(
         "flex items-center gap-2 rounded-xl px-2.5 py-1.5 text-[13px] transition-all relative",
         active
-          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold"
-          : "text-slate-700 hover:bg-slate-200/50 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+          ? "bg-primary/10 text-primary font-semibold"
+          : "text-foreground/70 hover:bg-muted hover:text-foreground"
       )}
     >
-      <span className={classNames("flex h-5 w-5 items-center justify-center transition-colors", active ? "text-emerald-500" : "text-slate-400 dark:text-slate-500")}>
+      <span className={classNames("flex h-5 w-5 items-center justify-center transition-colors", active ? "text-primary" : "text-muted-foreground")}>
         {icon}
       </span>
       <span className="truncate">{label}</span>

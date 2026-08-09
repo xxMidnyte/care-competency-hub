@@ -9,6 +9,7 @@
   --card: #050b1a;
   --card-2: #071124;
   --muted: rgba(148, 163, 184, 0.10);
+  --muted-foreground: #94a3b8;
   --border: rgba(148, 163, 184, 0.14);
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
   --primary: #10b981;
@@ -22,6 +23,7 @@
   --card: #ffffff;
   --card-2: #f1f5f9;
   --muted: rgba(15, 23, 42, 0.06);
+  --muted-foreground: #64748b;
   --border: rgba(15, 23, 42, 0.12);
   --shadow: 0 12px 30px rgba(2, 6, 23, 0.10);
   --primary: #0ea371;
@@ -35,6 +37,7 @@
   --color-card: var(--card);
   --color-card-2: var(--card-2);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);

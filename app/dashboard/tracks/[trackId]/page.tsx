@@ -154,7 +154,7 @@ export default function TrackDetailPage() {
   }
 
   if (loading) {
-    return <div className="p-6 text-sm text-slate-400">Loading track…</div>;
+    return <div className="p-6 text-sm text-foreground/50">Loading track…</div>;
   }
 
   if (!track) {

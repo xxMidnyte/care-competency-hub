@@ -54,7 +54,7 @@ export function ThemeToggle() {
       <button
         type="button"
         aria-label="Toggle theme"
-        className="h-8 w-16 rounded-full border border-slate-700 bg-slate-900"
+        className="h-8 w-16 rounded-full border border-border bg-card-2"
       />
     );
   }
@@ -64,19 +64,19 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label="Toggle theme"
-      className="relative flex h-8 w-16 items-center rounded-full border border-slate-700 bg-slate-900 px-1 transition-all"
+      className="relative flex h-8 w-16 items-center rounded-full border border-border bg-card-2 px-1 transition-all"
     >
       <span
-        className={`absolute h-6 w-6 rounded-full bg-slate-100 shadow transition-transform ${
+        className={`absolute h-6 w-6 rounded-full bg-background shadow transition-transform ${
           theme === "light" ? "translate-x-8" : "translate-x-0"
         }`}
       />
 
       <span className="flex-1 flex justify-center">
-        <Moon className={`h-4 w-4 ${theme === "dark" ? "text-sky-200" : "text-slate-500"}`} />
+        <Moon className={`h-4 w-4 ${theme === "dark" ? "text-sky-300" : "text-muted-foreground"}`} />
       </span>
       <span className="flex-1 flex justify-center">
-        <Sun className={`h-4 w-4 ${theme === "light" ? "text-amber-300" : "text-slate-500"}`} />
+        <Sun className={`h-4 w-4 ${theme === "light" ? "text-amber-500" : "text-muted-foreground"}`} />
       </span>
     </button>
   );

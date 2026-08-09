@@ -63,7 +63,7 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
 
   if (loading) {
     return (
-      <div className="text-sm text-slate-400">
+      <div className="text-sm text-foreground/50">
         Loading manager overview…
       </div>
     );
@@ -85,14 +85,14 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
       {snapshot && (
         <div className="grid gap-4 sm:grid-cols-3">
           {/* Overall completion */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-border bg-card/60 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
               Completion rate
             </p>
             <p className="mt-2 text-3xl font-semibold">
               {snapshot.completion_rate ?? 0}%
             </p>
-            <div className="mt-3 h-2 w-full rounded-full bg-slate-800">
+            <div className="mt-3 h-2 w-full rounded-full bg-card-2">
               <div
                 className="h-2 rounded-full bg-emerald-500"
                 style={{
@@ -106,8 +106,8 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
           </div>
 
           {/* Total assigned */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-border bg-card/60 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
               Total assigned
             </p>
             <p className="mt-2 text-3xl font-semibold">
@@ -116,8 +116,8 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
           </div>
 
           {/* Overdue */}
-          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="rounded-xl border border-border bg-card/60 p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
               Overdue
             </p>
             <p className="mt-2 text-3xl font-semibold">
@@ -127,7 +127,7 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
               className={`mt-3 inline-flex rounded-full px-2 py-1 text-xs font-medium ${
                 snapshot.overdue_count > 0
                   ? "bg-red-500/15 text-red-300 border border-red-500/40"
-                  : "bg-slate-800 text-slate-300 border border-slate-700/60"
+                  : "bg-card-2 text-foreground/80 border border-border/60"
               }`}
             >
               {snapshot.overdue_count > 0
@@ -141,23 +141,23 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
       {/* High-risk list */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-100">
+          <h2 className="text-sm font-semibold text-foreground">
             High-risk / problem areas
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-foreground/50">
             Top {data.highRiskCompetencies.length || 0} competencies
             by risk & overdue staff
           </p>
         </div>
 
         {data.highRiskCompetencies.length === 0 ? (
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-foreground/50">
             No high-risk competencies flagged yet.
           </p>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60">
+          <div className="overflow-hidden rounded-xl border border-border bg-card/60">
             <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-slate-800 bg-slate-950/80 text-xs uppercase text-slate-400">
+              <thead className="border-b border-border bg-card/80 text-xs uppercase text-foreground/50">
                 <tr>
                   <th className="px-4 py-2">Competency</th>
                   <th className="px-4 py-2">Risk</th>
@@ -169,9 +169,9 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
                 {data.highRiskCompetencies.map((row) => (
                   <tr
                     key={row.competency_id}
-                    className="border-t border-slate-900/60"
+                    className="border-t border-border/60"
                   >
-                    <td className="px-4 py-2 text-slate-100">
+                    <td className="px-4 py-2 text-foreground">
                       {row.competency_name}
                     </td>
                     <td className="px-4 py-2 text-xs">
@@ -179,10 +179,10 @@ export function ManagerOverview({ facilityId }: { facilityId: string }) {
                         {row.risk_level ?? "Unspecified"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 text-slate-100">
+                    <td className="px-4 py-2 text-foreground">
                       {row.staff_overdue}
                     </td>
-                    <td className="px-4 py-2 text-slate-100">
+                    <td className="px-4 py-2 text-foreground">
                       {row.overdue_items}
                     </td>
                   </tr>

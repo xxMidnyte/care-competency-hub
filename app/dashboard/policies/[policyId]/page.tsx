@@ -194,7 +194,7 @@ export default function PolicyDetailPage() {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
         <div className="px-4 py-6">
-          <p className="text-sm text-slate-500">Loading policy…</p>
+          <p className="text-sm text-foreground/60">Loading policy…</p>
         </div>
       </div>
     );
@@ -206,7 +206,7 @@ export default function PolicyDetailPage() {
         <div className="px-4 py-6 space-y-3">
           <button
             onClick={() => router.back()}
-            className="text-xs text-slate-500 hover:text-slate-700"
+            className="text-xs text-foreground/60 hover:text-foreground/75"
           >
             ← Back to policies
           </button>
@@ -229,7 +229,7 @@ export default function PolicyDetailPage() {
       <div className="px-4 py-6 space-y-4 max-w-5xl mx-auto">
         <button
           onClick={() => router.back()}
-          className="text-xs text-slate-500 hover:text-slate-700"
+          className="text-xs text-foreground/60 hover:text-foreground/75"
         >
           ← Back to policies
         </button>
@@ -240,11 +240,11 @@ export default function PolicyDetailPage() {
               {policy.title}
             </h1>
             {policy.description && !isEditing && (
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              <p className="mt-1 max-w-2xl text-sm text-foreground/60">
                 {policy.description}
               </p>
             )}
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-foreground/60">
               Category:{" "}
               <span className="font-medium text-[var(--foreground)]">
                 {policy.category}
@@ -256,14 +256,14 @@ export default function PolicyDetailPage() {
                 year: "numeric",
               })}
             </p>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-foreground/60">
               Facility:{" "}
               <span className="font-medium text-[var(--foreground)]">
                 {facilityName}
               </span>
             </p>
             {policy.is_archived && (
-              <p className="mt-2 inline-flex rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300">
+              <p className="mt-2 inline-flex rounded-full bg-card-2 px-2 py-0.5 text-[10px] font-semibold uppercase text-foreground/80">
                 Archived
               </p>
             )}
@@ -273,7 +273,7 @@ export default function PolicyDetailPage() {
             <button
               type="button"
               onClick={() => setIsEditing((prev) => !prev)}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100/80 transition"
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-foreground/75 hover:bg-muted/80 transition"
             >
               {isEditing ? "Cancel edit" : "Edit metadata"}
             </button>
@@ -281,7 +281,7 @@ export default function PolicyDetailPage() {
               href={policy.file_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100/80 transition"
+              className="rounded-md border border-border px-3 py-1.5 text-xs text-foreground/75 hover:bg-muted/80 transition"
             >
               Open PDF in new tab
             </a>
@@ -292,7 +292,7 @@ export default function PolicyDetailPage() {
         {isEditing && (
           <form
             onSubmit={handleSaveEdit}
-            className="space-y-4 rounded-lg border border-slate-200 bg-[var(--surface-soft)] p-4"
+            className="space-y-4 rounded-lg border border-border bg-[var(--surface-soft)] p-4"
           >
             {error && (
               <div className="mb-2 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-500">
@@ -301,38 +301,38 @@ export default function PolicyDetailPage() {
             )}
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">
+              <label className="text-xs font-medium text-foreground/75">
                 Title
               </label>
               <input
                 type="text"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full rounded-md border border-slate-300 bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">
+              <label className="text-xs font-medium text-foreground/75">
                 Short description
               </label>
               <textarea
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={3}
-                className="w-full rounded-md border border-slate-300 bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-foreground/75">
                   Facility
                 </label>
                 <select
                   value={editFacilityId}
                   onChange={(e) => setEditFacilityId(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 >
                   <option value="">All facilities (org-wide)</option>
                   {facilities.map((f) => (
@@ -344,13 +344,13 @@ export default function PolicyDetailPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-foreground/75">
                   Category
                 </label>
                 <select
                   value={editCategory}
                   onChange={(e) => setEditCategory(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 >
                   {CATEGORY_OPTIONS.map((cat) => (
                     <option key={cat} value={cat}>
@@ -362,14 +362,14 @@ export default function PolicyDetailPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-medium text-slate-700">
+              <label className="text-xs font-medium text-foreground/75">
                 Tags (comma-separated)
               </label>
               <input
                 type="text"
                 value={editTagsInput}
                 onChange={(e) => setEditTagsInput(e.target.value)}
-                className="w-full rounded-md border border-slate-300 bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-full rounded-md border border-border bg-[var(--surface)] px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
             </div>
 
@@ -377,14 +377,14 @@ export default function PolicyDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-100/80 transition disabled:opacity-60"
+                className="rounded-md border border-border px-3 py-1.5 text-xs text-foreground/75 hover:bg-muted/80 transition disabled:opacity-60"
                 disabled={savingEdit}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="rounded-md bg-emerald-500 px-4 py-1.5 text-xs font-medium text-slate-950 hover:bg-emerald-400 transition disabled:opacity-60"
+                className="rounded-md bg-emerald-500 px-4 py-1.5 text-xs font-medium text-foreground hover:bg-emerald-400 transition disabled:opacity-60"
                 disabled={savingEdit}
               >
                 {savingEdit ? "Saving…" : "Save changes"}
@@ -399,7 +399,7 @@ export default function PolicyDetailPage() {
             {tags.map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-slate-200"
+                className="rounded-full bg-card-2 px-2 py-0.5 text-[10px] text-foreground/85"
               >
                 {tag}
               </span>
@@ -408,7 +408,7 @@ export default function PolicyDetailPage() {
         )}
 
         {/* PDF viewer */}
-        <div className="mt-4 h-[70vh] overflow-hidden rounded-lg border border-slate-200 bg-[var(--surface)]">
+        <div className="mt-4 h-[70vh] overflow-hidden rounded-lg border border-border bg-[var(--surface)]">
           <iframe
             src={policy.file_url}
             className="h-full w-full"

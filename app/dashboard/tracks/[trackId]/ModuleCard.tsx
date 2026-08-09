@@ -69,17 +69,17 @@ export default function ModuleCard({ module, userId, onStatusChange }: Props) {
   }
 
   return (
-    <div className="flex items-center justify-between rounded-xl border border-slate-800/70 bg-slate-900/80 px-3 py-2.5 text-xs">
+    <div className="flex items-center justify-between rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 text-xs">
       <div className="flex items-start gap-3">
         <ProgressRing value={ringValue} />
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-slate-50">
+            <span className="text-[11px] font-medium text-foreground">
               {module.title}
             </span>
           </div>
           {module.description && (
-            <p className="mt-1 text-[11px] text-slate-500 line-clamp-2">
+            <p className="mt-1 text-[11px] text-foreground/60 line-clamp-2">
               {module.description}
             </p>
           )}
@@ -93,7 +93,7 @@ export default function ModuleCard({ module, userId, onStatusChange }: Props) {
           ${
             completed
               ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-300"
-              : "border-slate-700 bg-slate-900 text-slate-300 hover:border-emerald-500/60 hover:text-emerald-200"
+              : "border-border bg-card text-foreground/80 hover:border-emerald-500/60 hover:text-emerald-200"
           }`}
       >
         {saving ? (

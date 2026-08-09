@@ -30,9 +30,9 @@ export default function TrackSection({
   onModuleStatusChange,
 }: Props) {
   return (
-    <section className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4">
+    <section className="rounded-2xl border border-border bg-card/40 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/80">
           {section.title}
         </h2>
       </div>

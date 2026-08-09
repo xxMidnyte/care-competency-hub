@@ -190,7 +190,7 @@ export default function DrillDetailPage() {
             <button
               type="button"
               onClick={() => router.push("/dashboard/manager")}
-              className="mb-2 inline-flex items-center rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 hover:bg-slate-800"
+              className="mb-2 inline-flex items-center rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground/85 hover:bg-card-2"
             >
               ← Back to manager dashboard
             </button>
@@ -198,7 +198,7 @@ export default function DrillDetailPage() {
               {pageTitle}
             </h1>
             {facility && (
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-foreground/50">
                 Facility: {facility.name}
               </p>
             )}
@@ -213,7 +213,7 @@ export default function DrillDetailPage() {
                       ? "bg-sky-500/10 text-sky-300 border border-sky-500/40"
                       : drill.status === "completed"
                       ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/40"
-                      : "bg-slate-700/40 text-slate-200 border border-slate-600/50"
+                      : "bg-card-2/40 text-foreground/85 border border-border/50"
                   }`}
                 >
                   {drill.status}
@@ -230,7 +230,7 @@ export default function DrillDetailPage() {
                       "_blank"
                     )
                   }
-                  className="inline-flex items-center rounded-md border border-slate-600 bg-slate-900 px-3 py-1 text-xs font-medium text-slate-100 hover:bg-slate-800"
+                  className="inline-flex items-center rounded-md border border-border bg-card px-3 py-1 text-xs font-medium text-foreground hover:bg-card-2"
                 >
                   Print station sheets
                 </button>
@@ -241,7 +241,7 @@ export default function DrillDetailPage() {
                     type="button"
                     onClick={handleEndDrill}
                     disabled={saving}
-                    className="inline-flex items-center rounded-md bg-red-500/90 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-red-400 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="inline-flex items-center rounded-md bg-red-500/90 px-3 py-1 text-xs font-medium text-foreground hover:bg-red-400 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {saving ? "Ending…" : "End drill"}
                   </button>
@@ -258,7 +258,7 @@ export default function DrillDetailPage() {
         )}
 
         {loading ? (
-          <div className="text-sm text-slate-400">Loading drill…</div>
+          <div className="text-sm text-foreground/50">Loading drill…</div>
         ) : !drill ? (
           <div className="rounded-md border border-red-500/40 bg-red-950/60 px-3 py-2 text-sm text-red-200">
             Drill not found.
@@ -267,21 +267,21 @@ export default function DrillDetailPage() {
           <>
             {/* Drill meta */}
             <div className="grid gap-4 sm:grid-cols-3">
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              <div className="rounded-xl border border-border bg-card/60 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
                   Started
                 </p>
-                <p className="mt-2 text-sm text-slate-100">
+                <p className="mt-2 text-sm text-foreground">
                   {drill.started_at
                     ? drill.started_at.slice(0, 16).replace("T", " ")
                     : "—"}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              <div className="rounded-xl border border-border bg-card/60 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
                   Ended
                 </p>
-                <p className="mt-2 text-sm text-slate-100">
+                <p className="mt-2 text-sm text-foreground">
                   {drill.ended_at
                     ? drill.ended_at.slice(0, 16).replace("T", " ")
                     : drill.status === "active"
@@ -289,8 +289,8 @@ export default function DrillDetailPage() {
                     : "—"}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              <div className="rounded-xl border border-border bg-card/60 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-foreground/50">
                   Total check-ins
                 </p>
                 <p className="mt-2 text-3xl font-semibold">
@@ -300,11 +300,11 @@ export default function DrillDetailPage() {
             </div>
 
             {/* Stations + URLs */}
-            <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
-              <div className="flex items-center justify-between border-b border-slate-800 bg-[var(--surface)] px-4 py-3">
+            <div className="rounded-xl border border-border bg-[var(--surface-soft)]">
+              <div className="flex items-center justify-between border-b border-border bg-[var(--surface)] px-4 py-3">
                 <div>
                   <h2 className="text-sm font-medium">Stations</h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-foreground/50">
                     One URL per station. Each has a QR code you can print or
                     send directly.
                   </p>
@@ -312,13 +312,13 @@ export default function DrillDetailPage() {
               </div>
 
               {stations.length === 0 ? (
-                <div className="px-4 py-4 text-sm text-slate-400">
+                <div className="px-4 py-4 text-sm text-foreground/50">
                   No stations defined for this drill.
                 </div>
               ) : (
                 <div className="max-h-72 overflow-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="sticky top-0 border-b border-slate-900/60 bg-[var(--surface)] text-xs uppercase tracking-wide text-slate-400">
+                    <thead className="sticky top-0 border-b border-border/60 bg-[var(--surface)] text-xs uppercase tracking-wide text-foreground/50">
                       <tr>
                         <th className="px-4 py-2 text-left font-medium">
                           Station
@@ -343,17 +343,17 @@ export default function DrillDetailPage() {
                         return (
                           <tr
                             key={s.id}
-                            className="border-b border-slate-900/60"
+                            className="border-b border-border/60"
                           >
-                            <td className="px-4 py-2 align-top text-slate-100">
+                            <td className="px-4 py-2 align-top text-foreground">
                               {s.name}
                             </td>
-                            <td className="px-4 py-2 align-top text-slate-100">
+                            <td className="px-4 py-2 align-top text-foreground">
                               {list.length}
                             </td>
-                            <td className="px-4 py-2 align-top text-xs text-slate-300">
+                            <td className="px-4 py-2 align-top text-xs text-foreground/80">
                               <div className="flex items-center gap-3">
-                                <div className="rounded-md bg-white p-1 shadow-sm">
+                                <div className="rounded-md bg-card p-1 shadow-sm">
                                   <QRCode value={url || ""} size={56} />
                                 </div>
                                 <div className="flex flex-col">
@@ -373,7 +373,7 @@ export default function DrillDetailPage() {
                                     // ignore
                                   }
                                 }}
-                                className="inline-flex items-center rounded-md border border-slate-600 bg-slate-900 px-2 py-0.5 text-[11px] text-slate-100 hover:bg-slate-800"
+                                className="inline-flex items-center rounded-md border border-border bg-card px-2 py-0.5 text-[11px] text-foreground hover:bg-card-2"
                               >
                                 Copy URL
                               </button>
@@ -388,24 +388,24 @@ export default function DrillDetailPage() {
             </div>
 
             {/* Full check-in log */}
-            <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
-              <div className="flex items-center justify-between border-b border-slate-800 bg-[var(--surface)] px-4 py-3">
+            <div className="rounded-xl border border-border bg-[var(--surface-soft)]">
+              <div className="flex items-center justify-between border-b border-border bg-[var(--surface)] px-4 py-3">
                 <div>
                   <h2 className="text-sm font-medium">Check-in log</h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-foreground/50">
                     Staff who checked in during this drill.
                   </p>
                 </div>
               </div>
 
               {checkins.length === 0 ? (
-                <div className="px-4 py-4 text-sm text-slate-400">
+                <div className="px-4 py-4 text-sm text-foreground/50">
                   No check-ins recorded yet.
                 </div>
               ) : (
                 <div className="max-h-80 overflow-auto">
                   <table className="min-w-full text-sm">
-                    <thead className="sticky top-0 border-b border-slate-900/60 bg-[var(--surface)] text-xs uppercase tracking-wide text-slate-400">
+                    <thead className="sticky top-0 border-b border-border/60 bg-[var(--surface)] text-xs uppercase tracking-wide text-foreground/50">
                       <tr>
                         <th className="px-4 py-2 text-left font-medium">
                           Time
@@ -429,20 +429,20 @@ export default function DrillDetailPage() {
                         return (
                           <tr
                             key={c.id}
-                            className="border-b border-slate-900/60"
+                            className="border-b border-border/60"
                           >
-                            <td className="px-4 py-2 align-top text-xs text-slate-300">
+                            <td className="px-4 py-2 align-top text-xs text-foreground/80">
                               {c.timestamp
                                 ? c.timestamp.slice(0, 16).replace("T", " ")
                                 : "—"}
                             </td>
-                            <td className="px-4 py-2 align-top text-slate-100">
+                            <td className="px-4 py-2 align-top text-foreground">
                               {c.name}
                             </td>
-                            <td className="px-4 py-2 align-top text-xs text-slate-300">
+                            <td className="px-4 py-2 align-top text-xs text-foreground/80">
                               {c.role || "—"}
                             </td>
-                            <td className="px-4 py-2 align-top text-xs text-slate-300">
+                            <td className="px-4 py-2 align-top text-xs text-foreground/80">
                               {station?.name || "—"}
                             </td>
                           </tr>

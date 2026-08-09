@@ -136,33 +136,33 @@ export function OnboardingWizard({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div className="relative w-full max-w-2xl rounded-2xl bg-slate-950 border border-slate-800 p-6 shadow-2xl">
+      <div className="relative w-full max-w-2xl rounded-2xl bg-card border border-border p-6 shadow-2xl">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-slate-100">
+            <h2 className="text-lg font-semibold text-foreground">
               Get set up in a few steps
             </h2>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-foreground/50">
               You can change anything later. This just gets you a fast first
               win.
             </p>
           </div>
           <button
             onClick={close}
-            className="rounded-full px-2 py-1 text-xs text-slate-400 hover:bg-slate-800"
+            className="rounded-full px-2 py-1 text-xs text-foreground/50 hover:bg-card-2"
           >
             Skip for now
           </button>
         </div>
 
         {/* Step indicator */}
-        <div className="mb-5 flex items-center gap-2 text-xs text-slate-400">
+        <div className="mb-5 flex items-center gap-2 text-xs text-foreground/50">
           {[1, 2, 3, 4].map((n) => (
             <div
               key={n}
               className={`flex-1 h-1 rounded-full ${
-                n <= step ? "bg-emerald-500" : "bg-slate-800"
+                n <= step ? "bg-emerald-500" : "bg-card-2"
               }`}
             />
           ))}
@@ -194,14 +194,14 @@ export function OnboardingWizard({
 
         {/* Footer buttons */}
         <div className="mt-6 flex items-center justify-between">
-          <div className="text-[10px] uppercase tracking-wide text-slate-500">
+          <div className="text-[10px] uppercase tracking-wide text-foreground/60">
             Step {step} of 4
           </div>
           <div className="flex gap-2">
             {step > 1 && step < 4 && (
               <button
                 onClick={prev}
-                className="rounded-md border border-slate-700 px-3 py-1 text-xs text-slate-200 hover:bg-slate-900"
+                className="rounded-md border border-border px-3 py-1 text-xs text-foreground/85 hover:bg-card"
               >
                 Back
               </button>
@@ -211,13 +211,13 @@ export function OnboardingWizard({
               <>
                 <button
                   onClick={skipStep}
-                  className="rounded-md border border-slate-700 px-3 py-1 text-xs text-slate-200 hover:bg-slate-900"
+                  className="rounded-md border border-border px-3 py-1 text-xs text-foreground/85 hover:bg-card"
                 >
                   Skip
                 </button>
                 <button
                   onClick={next}
-                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-emerald-500"
+                  className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-foreground hover:bg-emerald-500"
                 >
                   Next
                 </button>
@@ -228,7 +228,7 @@ export function OnboardingWizard({
               <button
                 onClick={handleFinish}
                 disabled={saving}
-                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-emerald-500 disabled:opacity-60"
+                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-foreground hover:bg-emerald-500 disabled:opacity-60"
               >
                 {saving ? "Finishing..." : "Finish setup"}
               </button>
@@ -237,7 +237,7 @@ export function OnboardingWizard({
             {step === 4 && (
               <button
                 onClick={close}
-                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-slate-950 hover:bg-emerald-500"
+                className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-medium text-foreground hover:bg-emerald-500"
               >
                 Go to dashboard
               </button>
@@ -259,17 +259,17 @@ function StepFacility({
 }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-slate-100">
+      <h3 className="text-sm font-semibold text-foreground">
         Start with your facility
       </h3>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-foreground/50">
         This helps us personalize your competency library and reports.
       </p>
 
-      <label className="flex flex-col gap-1 text-xs text-slate-200">
+      <label className="flex flex-col gap-1 text-xs text-foreground/85">
         Facility name
         <input
-          className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 outline-none focus:border-emerald-500"
+          className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-emerald-500"
           placeholder="e.g. St. Cloud Home Health"
           value={facility.name}
           onChange={(e) =>
@@ -278,10 +278,10 @@ function StepFacility({
         />
       </label>
 
-      <label className="flex flex-col gap-1 text-xs text-slate-200">
+      <label className="flex flex-col gap-1 text-xs text-foreground/85">
         Setting
         <select
-          className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 outline-none focus:border-emerald-500"
+          className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-emerald-500"
           value={facility.setting}
           onChange={(e) =>
             setFacility({ ...facility, setting: e.target.value })
@@ -309,15 +309,15 @@ function StepStaff({
 }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-slate-100">
+      <h3 className="text-sm font-semibold text-foreground">
         Add your staff (optional)
       </h3>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-foreground/50">
         Paste emails separated by commas or line breaks. You can invite them properly later; this just seeds your list.
       </p>
 
       <textarea
-        className="min-h-[120px] w-full rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 outline-none focus:border-emerald-500"
+        className="min-h-[120px] w-full rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground outline-none focus:border-emerald-500"
         placeholder={"nurse1@example.com\nnurse2@example.com\ntherapist@example.com"}
         value={staff.rawEmails}
         onChange={(e) => setStaff({ rawEmails: e.target.value })}
@@ -336,15 +336,15 @@ function StepAssignments({
 }) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-slate-100">
+      <h3 className="text-sm font-semibold text-foreground">
         Smart competency assignment
       </h3>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-foreground/50">
         We can pre-assign a recommended starter set of competencies per role.
         You can customize everything later.
       </p>
 
-      <label className="flex items-start gap-2 text-xs text-slate-200">
+      <label className="flex items-start gap-2 text-xs text-foreground/85">
         <input
           type="checkbox"
           className="mt-0.5"
@@ -359,8 +359,8 @@ function StepAssignments({
         </span>
       </label>
 
-      <div className="rounded-md border border-slate-800 bg-slate-900/60 p-3 text-[11px] text-slate-300">
-        <p className="font-semibold text-slate-100 mb-1">
+      <div className="rounded-md border border-border bg-card/60 p-3 text-[11px] text-foreground/80">
+        <p className="font-semibold text-foreground mb-1">
           Preview (conceptual)
         </p>
         <ul className="list-disc pl-4 space-y-0.5">
@@ -369,7 +369,7 @@ function StepAssignments({
           <li>Therapy Core (PT/OT/SLP) — documentation + clinical skills</li>
           <li>High-Risk Focus — medication admin, infection control, etc.</li>
         </ul>
-        <p className="mt-2 text-[10px] text-slate-500">
+        <p className="mt-2 text-[10px] text-foreground/60">
           We&apos;ll wire this to your real competency library next.
         </p>
       </div>
@@ -384,10 +384,10 @@ function StepDone() {
       <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-600/20 text-emerald-400">
         ✅
       </div>
-      <h3 className="text-sm font-semibold text-slate-100">
+      <h3 className="text-sm font-semibold text-foreground">
         You&apos;re all set!
       </h3>
-      <p className="max-w-xs text-xs text-slate-400">
+      <p className="max-w-xs text-xs text-foreground/50">
         Your facility, staff, and starter competencies are ready. You can tweak
         everything from the dashboard at any time.
       </p>

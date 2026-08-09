@@ -34,7 +34,7 @@ export default function ProgressShield({
 
   return (
     <div
-      className="inline-flex flex-col items-center justify-center rounded-2xl border border-slate-800 bg-slate-950/80 p-4 shadow-[0_0_30px_rgba(15,23,42,0.8)]"
+      className="inline-flex flex-col items-center justify-center rounded-2xl border border-border bg-card/80 p-4 shadow-[0_0_30px_rgba(15,23,42,0.8)]"
       style={{ width: size + 40 }}
     >
       <div
@@ -96,17 +96,17 @@ export default function ProgressShield({
 
         {/* Center text */}
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-3xl font-semibold text-slate-50">
+          <span className="text-3xl font-semibold text-foreground">
             {percentage}%
           </span>
-          <span className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+          <span className="mt-1 text-[11px] uppercase tracking-[0.18em] text-foreground/50">
             Complete
           </span>
         </div>
       </div>
 
       {label && (
-        <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+        <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-foreground/50">
           {label}
         </p>
       )}

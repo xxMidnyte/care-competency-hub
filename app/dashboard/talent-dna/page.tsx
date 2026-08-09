@@ -56,20 +56,20 @@ export default function TalentDNAMainPage() {
       <div className="p-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Staff Track Recommendations</h1>
-            <p className="text-slate-500 text-sm">Automated developmental track matching based on Talent DNA.</p>
+            <h1 className="text-2xl font-bold text-foreground">Staff Track Recommendations</h1>
+            <p className="text-foreground/60 text-sm">Automated developmental track matching based on Talent DNA.</p>
           </div>
           <Link 
             href="/dashboard/talent-dna/quiz"
-            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-sm"
+            className="flex items-center gap-2 bg-indigo-600 text-foreground px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-indigo-700 transition-all shadow-sm"
           >
             <Dna size={18} /> Take My Own Assessment
           </Link>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase font-bold text-slate-500 tracking-wider">
+            <thead className="bg-muted border-b border-border text-[11px] uppercase font-bold text-foreground/60 tracking-wider">
               <tr>
                 <th className="px-6 py-4">Employee</th>
                 <th className="px-6 py-4">Top 5 Themes</th>
@@ -81,15 +81,15 @@ export default function TalentDNAMainPage() {
               {mockStaff.map((staff) => {
                 const rec = getRecommendedTrack(staff.top5);
                 return (
-                  <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={staff.id} className="hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900">{staff.name}</div>
-                      <div className="text-[10px] text-slate-500 font-medium uppercase">{staff.role}</div>
+                      <div className="font-bold text-foreground">{staff.name}</div>
+                      <div className="text-[10px] text-foreground/60 font-medium uppercase">{staff.role}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1.5 max-w-[280px]">
                         {staff.top5.map((t) => (
-                          <span key={t} className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-medium text-slate-600 border border-slate-200">
+                          <span key={t} className="text-[10px] bg-muted px-2 py-0.5 rounded font-medium text-foreground/65 border border-border">
                             {t}
                           </span>
                         ))}
@@ -121,31 +121,31 @@ export default function TalentDNAMainPage() {
       <div className="mb-8 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600">
         <Dna size={40} />
       </div>
-      <h1 className="text-4xl font-black text-slate-900 mb-4 tracking-tight">Clinical Talent DNA</h1>
-      <p className="text-slate-500 text-lg mb-12 max-w-xl mx-auto leading-relaxed">
+      <h1 className="text-4xl font-black text-foreground mb-4 tracking-tight">Clinical Talent DNA</h1>
+      <p className="text-foreground/60 text-lg mb-12 max-w-xl mx-auto leading-relaxed">
         Understand your natural clinical instincts and unlock a personalized professional development track.
       </p>
 
       <div className="grid md:grid-cols-2 gap-6 text-left mb-12">
-        <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+        <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
           <div className="h-10 w-10 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center mb-4">
             <ClipboardCheck size={20} />
           </div>
-          <h3 className="font-bold text-slate-900 mb-2">The Assessment</h3>
-          <p className="text-sm text-slate-500">A 177-question psychometric tool specifically designed for healthcare professionals.</p>
+          <h3 className="font-bold text-foreground mb-2">The Assessment</h3>
+          <p className="text-sm text-foreground/60">A 177-question psychometric tool specifically designed for healthcare professionals.</p>
         </div>
-        <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm">
+        <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
           <div className="h-10 w-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-4">
             <UserCircle2 size={20} />
           </div>
-          <h3 className="font-bold text-slate-900 mb-2">Growth Tracks</h3>
-          <p className="text-sm text-slate-500">Automatically get matched to Leadership, Mentorship, or Clinical Excellence pathways.</p>
+          <h3 className="font-bold text-foreground mb-2">Growth Tracks</h3>
+          <p className="text-sm text-foreground/60">Automatically get matched to Leadership, Mentorship, or Clinical Excellence pathways.</p>
         </div>
       </div>
 
       <Link 
         href={hasCompletedDna ? "/dashboard/talent-dna/results" : "/dashboard/talent-dna/quiz"}
-        className="inline-flex items-center gap-2 bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all group shadow-xl shadow-slate-200"
+        className="inline-flex items-center gap-2 bg-card text-foreground px-8 py-4 rounded-2xl font-bold hover:bg-card-2 transition-all group shadow-xl shadow-slate-200"
       >
         {hasCompletedDna ? "View My Results" : "Start My Assessment"}
         <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />

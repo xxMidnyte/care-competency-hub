@@ -54,13 +54,13 @@ export default function DevelopmentPlan({ trackName }: PlanProps) {
   };
 
   return (
-    <div className="mt-8 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm transition-all">
-      <div className="bg-slate-50 p-6 border-b border-slate-200 flex items-center justify-between">
+    <div className="mt-8 bg-card border border-border rounded-2xl overflow-hidden shadow-sm transition-all">
+      <div className="bg-muted p-6 border-b border-border flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-bold text-slate-900 leading-tight">Next Steps: Your Growth Plan</h3>
-          <p className="text-sm text-slate-500">Action items to advance within the {trackName} track.</p>
+          <h3 className="text-lg font-bold text-foreground leading-tight">Next Steps: Your Growth Plan</h3>
+          <p className="text-sm text-foreground/60">Action items to advance within the {trackName} track.</p>
         </div>
-        <div className="p-3 bg-white rounded-xl shadow-sm border border-slate-100 flex-shrink-0">
+        <div className="p-3 bg-card rounded-xl shadow-sm border border-border flex-shrink-0">
           {currentPlan.icon}
         </div>
       </div>
@@ -69,13 +69,13 @@ export default function DevelopmentPlan({ trackName }: PlanProps) {
         {currentPlan.steps.map((step, i) => (
           <div key={i} className="flex gap-4 group">
             <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
-              hasStarted ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400 group-hover:bg-indigo-600 group-hover:text-white'
+              hasStarted ? 'bg-emerald-100 text-emerald-600' : 'bg-muted text-foreground/50 group-hover:bg-indigo-600 group-hover:text-foreground'
             }`}>
               {hasStarted ? <CheckCircle size={16} /> : i + 1}
             </div>
             <div>
-              <h4 className="font-bold text-slate-900 mb-1">{step.title}</h4>
-              <p className="text-sm text-slate-600 leading-relaxed">{step.detail}</p>
+              <h4 className="font-bold text-foreground mb-1">{step.title}</h4>
+              <p className="text-sm text-foreground/65 leading-relaxed">{step.detail}</p>
             </div>
           </div>
         ))}

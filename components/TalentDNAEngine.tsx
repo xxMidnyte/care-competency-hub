@@ -131,7 +131,7 @@ export default function TalentDNAEngine() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 text-slate-500 gap-4">
+      <div className="flex flex-col items-center justify-center p-20 text-foreground/60 gap-4">
         <Loader2 className="animate-spin text-indigo-500" size={40} />
         <p className="font-medium">Loading Assessment Questions...</p>
       </div>
@@ -140,12 +140,12 @@ export default function TalentDNAEngine() {
 
   if (isFinished) {
     return (
-      <div className="bg-white rounded-3xl p-16 text-center border border-slate-200 shadow-2xl">
+      <div className="bg-card rounded-3xl p-16 text-center border border-border shadow-2xl">
         <div className="bg-green-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
           <CheckCircle2 className="w-10 h-10 text-green-600" />
         </div>
-        <h2 className="text-3xl font-bold mb-4 text-slate-900">Great work!</h2>
-        <p className="text-slate-600 text-lg mb-8">
+        <h2 className="text-3xl font-bold mb-4 text-foreground">Great work!</h2>
+        <p className="text-foreground/65 text-lg mb-8">
           {isSaving ? "Finalizing your results..." : "Your assessment is complete. Let's see your results."}
         </p>
         {isSaving && <Loader2 className="animate-spin text-indigo-500 mx-auto" />}
@@ -163,16 +163,16 @@ export default function TalentDNAEngine() {
           <div className={`p-2 rounded-lg ${timeLeft <= 5 ? 'bg-red-50 text-red-600 animate-pulse' : 'bg-indigo-50 text-indigo-600'}`}>
             <Timer size={20} />
           </div>
-          <span className={`text-xl font-mono font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-slate-700'}`}>
+          <span className={`text-xl font-mono font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-foreground/75'}`}>
             0:{timeLeft < 10 ? `0${timeLeft}` : timeLeft}
           </span>
         </div>
-        <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+        <span className="text-sm font-bold text-foreground/50 uppercase tracking-widest">
           Progress: {Math.round(progressPercent)}%
         </span>
       </div>
 
-      <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden border border-slate-200">
+      <div className="w-full bg-muted h-3 rounded-full overflow-hidden border border-border">
         <div 
           className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full transition-all duration-700 ease-in-out" 
           style={{ width: `${progressPercent}%` }}
@@ -182,20 +182,20 @@ export default function TalentDNAEngine() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative pt-4">
         <button 
           onClick={() => handleChoice('left')}
-          className="group relative bg-white border-2 border-slate-200 hover:border-indigo-500 hover:shadow-2xl hover:-translate-y-1 p-12 rounded-[2rem] transition-all duration-300 text-left min-h-[320px] flex flex-col justify-center"
+          className="group relative bg-card border-2 border-border hover:border-indigo-500 hover:shadow-2xl hover:-translate-y-1 p-12 rounded-[2rem] transition-all duration-300 text-left min-h-[320px] flex flex-col justify-center"
         >
-          <span className="absolute top-6 left-8 text-xs font-black text-slate-300 uppercase tracking-[0.2em]">Option A</span>
-          <p className="text-2xl font-semibold text-slate-800 leading-tight group-hover:text-indigo-900 transition-colors">
+          <span className="absolute top-6 left-8 text-xs font-black text-foreground/80 uppercase tracking-[0.2em]">Option A</span>
+          <p className="text-2xl font-semibold text-foreground/85 leading-tight group-hover:text-indigo-900 transition-colors">
             {currentQ?.left_statement}
           </p>
         </button>
 
         <button 
           onClick={() => handleChoice('right')}
-          className="group relative bg-white border-2 border-slate-200 hover:border-indigo-500 hover:shadow-2xl hover:-translate-y-1 p-12 rounded-[2rem] transition-all duration-300 text-left min-h-[320px] flex flex-col justify-center"
+          className="group relative bg-card border-2 border-border hover:border-indigo-500 hover:shadow-2xl hover:-translate-y-1 p-12 rounded-[2rem] transition-all duration-300 text-left min-h-[320px] flex flex-col justify-center"
         >
-          <span className="absolute top-6 left-8 text-xs font-black text-slate-300 uppercase tracking-[0.2em]">Option B</span>
-          <p className="text-2xl font-semibold text-slate-800 leading-tight group-hover:text-indigo-900 transition-colors">
+          <span className="absolute top-6 left-8 text-xs font-black text-foreground/80 uppercase tracking-[0.2em]">Option B</span>
+          <p className="text-2xl font-semibold text-foreground/85 leading-tight group-hover:text-indigo-900 transition-colors">
             {currentQ?.right_statement}
           </p>
         </button>
@@ -203,14 +203,14 @@ export default function TalentDNAEngine() {
         <div className="md:absolute md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 flex flex-col items-center">
           <button 
             onClick={() => handleChoice('neutral')}
-            className="bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border border-slate-200 transition-all shadow-sm active:scale-95"
+            className="bg-card hover:bg-muted text-foreground/50 hover:text-foreground/65 px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border border-border transition-all shadow-sm active:scale-95"
           >
             Skip / Neutral
           </button>
         </div>
       </div>
       
-      <p className="text-center text-slate-400 text-sm font-medium">
+      <p className="text-center text-foreground/50 text-sm font-medium">
         Question {currentIndex + 1} of {questions.length}
       </p>
     </div>

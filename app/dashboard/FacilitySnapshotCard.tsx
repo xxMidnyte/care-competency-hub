@@ -119,8 +119,8 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-        <p className="text-sm text-slate-400">Loading snapshot…</p>
+      <div className="rounded-2xl border border-border bg-card/60 p-6">
+        <p className="text-sm text-foreground/50">Loading snapshot…</p>
       </div>
     );
   }
@@ -141,13 +141,13 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
   const { snapshot, highRiskCompetencies } = data;
 
   return (
-    <div className="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 text-slate-50 shadow-lg shadow-black/40">
+    <div className="rounded-3xl border border-border bg-card/80 p-6 text-foreground shadow-lg shadow-black/40">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-emerald-400">
             Facility snapshot
           </p>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-foreground/50">
             {facilityName ?? "Primary facility"} • real-time compliance overview
           </p>
         </div>
@@ -156,7 +156,7 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
       {/* Top 3 metrics */}
       <div className="grid gap-4 md:grid-cols-3">
         {/* Overall compliance */}
-        <div className="col-span-1 rounded-2xl bg-emerald-600/90 px-5 py-4 text-slate-950">
+        <div className="col-span-1 rounded-2xl bg-emerald-600/90 px-5 py-4 text-foreground">
           <p className="text-xs font-semibold uppercase tracking-[0.15em]">
             Overall compliance
           </p>
@@ -169,40 +169,40 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
         </div>
 
         {/* Overdue staff */}
-        <div className="rounded-2xl bg-slate-900/60 px-5 py-4">
+        <div className="rounded-2xl bg-card/60 px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-rose-400">
             Overdue staff
           </p>
           <p className="mt-2 text-3xl font-semibold text-rose-300">
             {snapshot.overdue_staff_count}
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-foreground/50">
             flagged for follow-up
           </p>
         </div>
 
         {/* Expiring soon */}
-        <div className="rounded-2xl bg-slate-900/60 px-5 py-4">
+        <div className="rounded-2xl bg-card/60 px-5 py-4">
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-amber-300">
             Expiring in 30 days
           </p>
           <p className="mt-2 text-3xl font-semibold text-amber-200">
             {snapshot.expiring_in_30_days_count}
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-foreground/50">
             automatic reminders scheduled
           </p>
         </div>
       </div>
 
       {/* High-risk list */}
-      <div className="mt-6 rounded-2xl bg-slate-950/40 px-5 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">
+      <div className="mt-6 rounded-2xl bg-card/40 px-5 py-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-foreground/50">
           High-risk competencies
         </p>
 
         {highRiskCompetencies.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-3 text-sm text-foreground/50">
             No high-risk competencies overdue. 🎉
           </p>
         ) : (
@@ -213,7 +213,7 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
               return (
                 <li
                   key={item.competency_id}
-                  className="rounded-xl bg-slate-900/80 px-3 py-2"
+                  className="rounded-xl bg-card/80 px-3 py-2"
                 >
                   <button
                     type="button"
@@ -221,10 +221,10 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
                     className="flex w-full items-center justify-between gap-3 text-left"
                   >
                     <div>
-                      <p className="font-medium text-slate-50">
+                      <p className="font-medium text-foreground">
                         {item.competency_name}
                       </p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-foreground/50">
                         {item.staff_overdue} staff overdue •{" "}
                         {item.overdue_items} items
                       </p>
@@ -246,7 +246,7 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
                   </button>
 
                   {isOpen && (
-                    <div className="mt-2 border-t border-slate-800 pt-2 text-xs text-slate-300">
+                    <div className="mt-2 border-t border-border pt-2 text-xs text-foreground/80">
                       {staffLoading && <p>Loading overdue staff…</p>}
 
                       {staffError && (
@@ -265,10 +265,10 @@ export function FacilitySnapshotCard({ facilityId, facilityName }: Props) {
                               className="flex items-center justify-between"
                             >
                               <div>
-                                <p className="font-medium text-slate-50">
+                                <p className="font-medium text-foreground">
                                   {s.full_name}
                                 </p>
-                                <p className="text-[11px] text-slate-400">
+                                <p className="text-[11px] text-foreground/50">
                                   {s.role_title ?? "Staff"}{" "}
                                   {s.due_date && (
                                     <>

@@ -229,40 +229,40 @@ export default function ManagerAssignPage() {
             <h1 className="text-2xl font-semibold tracking-tight">
               Assign competency
             </h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-foreground/50">
               Choose who should complete this competency and set a due date.
             </p>
           </div>
           <button
             onClick={() => router.push("/dashboard/library")}
-            className="text-xs font-medium text-slate-400 hover:text-slate-200"
+            className="text-xs font-medium text-foreground/50 hover:text-foreground/85"
           >
             ← Back to library
           </button>
         </div>
 
         {orgLoading || loading ? (
-          <div className="px-6 py-8 text-sm text-slate-400">Loading…</div>
+          <div className="px-6 py-8 text-sm text-foreground/50">Loading…</div>
         ) : !organizationId ? (
           <div className="rounded-xl border border-red-500/40 bg-red-950/60 px-4 py-6 text-sm text-red-100">
             Organization context could not be loaded. Please refresh the page or
             contact support if this continues.
           </div>
         ) : !isManagerOrAdmin ? (
-          <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] px-4 py-6 text-sm text-slate-300">
+          <div className="rounded-xl border border-border bg-[var(--surface-soft)] px-4 py-6 text-sm text-foreground/80">
             You don&apos;t have permission to assign competencies. Please contact
             your administrator if you think this is a mistake.
           </div>
         ) : (
           <>
             {competency && (
-              <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-400">
+              <div className="rounded-xl border border-border bg-[var(--surface-soft)] p-4">
+                <p className="text-xs uppercase tracking-wide text-foreground/50">
                   Selected competency
                 </p>
                 <p className="mt-1 text-sm font-medium">{competency.title}</p>
                 {competency.risk_level && (
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-foreground/50">
                     Risk level:{" "}
                     <span className="font-medium">
                       {competency.risk_level.toUpperCase()}
@@ -285,13 +285,13 @@ export default function ManagerAssignPage() {
             )}
 
             <div className="grid gap-4 md:grid-cols-[2fr,1fr]">
-              <div className="space-y-3 rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
+              <div className="space-y-3 rounded-xl border border-border bg-[var(--surface-soft)] p-4">
                 <h2 className="text-sm font-semibold">
                   Who should complete this?
                 </h2>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-400">
+                  <label className="text-xs font-medium text-foreground/50">
                     Facility
                   </label>
                   <select
@@ -299,7 +299,7 @@ export default function ManagerAssignPage() {
                     onChange={(e) =>
                       setSelectedFacilityId(e.target.value || null)
                     }
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                   >
                     {facilities.length === 0 && (
                       <option value="">No facilities found</option>
@@ -312,51 +312,51 @@ export default function ManagerAssignPage() {
                   </select>
                 </div>
 
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-foreground/60">
                   Showing{" "}
-                  <span className="font-semibold text-slate-200">
+                  <span className="font-semibold text-foreground/85">
                     {visibleStaff.length}
                   </span>{" "}
                   staff in this facility.
                 </p>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-slate-800 bg-[var(--surface-soft)] p-4">
+              <div className="space-y-3 rounded-xl border border-border bg-[var(--surface-soft)] p-4">
                 <h2 className="text-sm font-semibold">Assignment details</h2>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-400">
+                  <label className="text-xs font-medium text-foreground/50">
                     Due date (optional)
                   </label>
                   <input
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    className="w-full rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-slate-400">
+                  <label className="text-xs font-medium text-foreground/50">
                     Notes (optional)
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     rows={3}
-                    className="w-full resize-none rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    className="w-full resize-none rounded-md border border-border bg-card px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                     placeholder="E.g., Annual med pass review, must be done before next survey."
                   />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-[var(--surface-soft)]">
-              <div className="flex items-center justify-between border-b border-slate-800 bg-[var(--surface)] px-4 py-3">
+            <div className="rounded-xl border border-border bg-[var(--surface-soft)]">
+              <div className="flex items-center justify-between border-b border-border bg-[var(--surface)] px-4 py-3">
                 <h2 className="text-sm font-semibold">
                   Staff in this facility
                 </h2>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-foreground/50">
                   Selected:{" "}
                   <span className="font-semibold text-emerald-400">
                     {selectedStaffIds.size}
@@ -365,14 +365,14 @@ export default function ManagerAssignPage() {
               </div>
 
               {visibleStaff.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-slate-400">
+                <div className="px-4 py-6 text-sm text-foreground/50">
                   No staff found for this facility.
                 </div>
               ) : (
                 <div className="max-h-[420px] overflow-auto">
                   <table className="min-w-full table-fixed text-sm">
-                    <thead className="sticky top-0 bg-[var(--surface)] text-xs uppercase tracking-wide text-slate-400 backdrop-blur">
-                      <tr className="border-b border-slate-900/60">
+                    <thead className="sticky top-0 bg-[var(--surface)] text-xs uppercase tracking-wide text-foreground/50 backdrop-blur">
+                      <tr className="border-b border-border/60">
                         <th className="w-10 px-3 py-2 text-left">
                           <span className="sr-only">Select</span>
                         </th>
@@ -384,7 +384,7 @@ export default function ManagerAssignPage() {
                       {visibleStaff.map((s) => (
                         <tr
                           key={s.id}
-                          className="border-b border-slate-900/60 hover:bg-slate-900/40"
+                          className="border-b border-border/60 hover:bg-card/40"
                           onClick={() => toggleStaffSelection(s.id)}
                         >
                           <td className="px-3 py-2 align-middle">
@@ -399,7 +399,7 @@ export default function ManagerAssignPage() {
                           <td className="px-3 py-2 align-middle">
                             {s.full_name || "(No name)"}
                           </td>
-                          <td className="px-3 py-2 align-middle text-slate-300">
+                          <td className="px-3 py-2 align-middle text-foreground/80">
                             {s.email || "—"}
                           </td>
                         </tr>
@@ -411,12 +411,12 @@ export default function ManagerAssignPage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-foreground/50">
                 You’re assigning this competency{" "}
                 {dueDate ? (
                   <>
                     with a due date of{" "}
-                    <span className="font-semibold text-slate-200">
+                    <span className="font-semibold text-foreground/85">
                       {dueDate}
                     </span>
                     .
@@ -429,7 +429,7 @@ export default function ManagerAssignPage() {
               <button
                 onClick={handleAssign}
                 disabled={saving || selectedStaffIds.size === 0 || !competency}
-                className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-500 px-4 py-2 text-sm font-medium text-foreground hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-card-2 disabled:text-foreground/80"
               >
                 {saving ? "Assigning…" : "Assign competency"}
               </button>
