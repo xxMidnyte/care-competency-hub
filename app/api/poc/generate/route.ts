@@ -1,11 +1,7 @@
 // app/api/poc/generate/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { generateJson } from "@/lib/gemini";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // 2) Build AI prompt
     const prompt = `
-You are an expert in CMS/state survey compliance, specializing in creating Plans of Correction (POCs) that meet CMS-2567 expectations.
+You are a strict JSON generator and an expert in CMS/state survey compliance, specializing in creating Plans of Correction (POCs) that meet CMS-2567 expectations. Always respond with ONLY valid JSON, no extra text.
 
 You will create a Plan of Correction for the following deficiency.
 
@@ -80,30 +76,36 @@ Return your answer as a strict JSON object with this exact shape and nothing els
 }
     `.trim();
 
-    // 3) Call OpenAI via chat.completions
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a strict JSON generator. Always respond with ONLY valid JSON, no extra text.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
+    // 3) Call Gemini
+    const responseSchema = {
+      type: "OBJECT",
+      properties: {
+        immediate_actions: { type: "STRING" },
+        correction_steps: { type: "STRING" },
+        monitoring_plan: { type: "STRING" },
+        completion_date: { type: "STRING" },
+        responsible_roles: { type: "STRING" },
+        policy_updates: { type: "STRING" },
+        education_plan: { type: "STRING" },
+        documentation_plan: { type: "STRING" },
+      },
+      required: [
+        "immediate_actions",
+        "correction_steps",
+        "monitoring_plan",
+        "completion_date",
+        "responsible_roles",
+        "policy_updates",
+        "education_plan",
+        "documentation_plan",
       ],
-    });
-
-    const raw = completion.choices[0]?.message?.content ?? "";
+    };
 
     let parsed: any;
     try {
-      parsed = JSON.parse(raw);
+      parsed = await generateJson(prompt, responseSchema);
     } catch (e) {
-      console.error("Failed to parse AI JSON:", e, raw);
+      console.error("Gemini POC generation failed:", e);
       return NextResponse.json(
         { error: "AI returned invalid JSON." },
         { status: 500 }

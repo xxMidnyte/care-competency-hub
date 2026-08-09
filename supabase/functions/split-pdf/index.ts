@@ -29,7 +29,7 @@ const OFFICIAL_CATEGORIES = ["HR", "Clinical", "Safety", "Emergency", "Infection
 const CHUNK_SIZE = 8
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODEL = 'gemini-3.6-flash'
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = ''

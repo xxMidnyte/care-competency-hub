@@ -1,11 +1,7 @@
 // app/api/competencies/ai-generate/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { generateJson } from "@/lib/gemini";
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: "English",
@@ -159,32 +155,30 @@ Quality rules:
 - Keep language plain and actionable (avoid fluff).
 `.trim();
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.4,
-    });
-
-    const raw = completion.choices[0]?.message?.content;
-
-    if (!raw) {
-      return NextResponse.json(
-        { error: "No content generated from AI." },
-        { status: 500 }
-      );
-    }
+    const responseSchema = {
+      type: "OBJECT",
+      properties: {
+        purpose: { type: "STRING" },
+        objectives: { type: "STRING", nullable: true },
+        equipment: { type: "STRING", nullable: true },
+        procedure: { type: "STRING", nullable: true },
+        checklist: { type: "STRING", nullable: true },
+        quiz: { type: "STRING", nullable: true },
+        policy: { type: "STRING", nullable: true },
+        documentation: { type: "STRING", nullable: true },
+        evidence: { type: "STRING", nullable: true },
+        reassignment: { type: "STRING", nullable: true },
+      },
+      required: ["purpose"],
+    };
 
     let parsed: Record<string, any>;
     try {
-      parsed = JSON.parse(raw);
+      parsed = await generateJson(`${systemPrompt}\n\n${userPrompt}`, responseSchema);
     } catch (err) {
-      console.error("Failed to parse AI JSON:", err, raw);
+      console.error("Gemini competency generation failed:", err);
       return NextResponse.json(
-        { error: "Failed to parse AI response." },
+        { error: "Failed to generate competency from AI." },
         { status: 500 }
       );
     }
