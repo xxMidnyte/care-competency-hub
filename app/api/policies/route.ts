@@ -1,4 +1,3 @@
-// app/api/policies/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -12,10 +11,7 @@ export async function GET(req: NextRequest) {
   const includeArchived = searchParams.get("includeArchived") === "true";
 
   if (!orgId) {
-    return NextResponse.json(
-      { error: "orgId is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "orgId is required" }, { status: 400 });
   }
 
   try {
@@ -29,17 +25,20 @@ export async function GET(req: NextRequest) {
       query = query.eq("is_archived", false);
     }
 
-    if (facilityId) {
+    if (facilityId && facilityId !== "all") {
       query = query.eq("facility_id", facilityId);
     }
 
-    if (category) {
+    if (category && category !== "All") {
       query = query.eq("category", category);
     }
 
+    // --- ENHANCED SEARCH LOGIC ---
     if (q) {
+      // This searches the title, description, AND the tags array
+      // Note: We cast tags to text for a broad partial match search
       query = query.or(
-        `title.ilike.%${q}%,description.ilike.%${q}%`
+        `title.ilike.%${q}%,description.ilike.%${q}%,tags.cs.{"${q}"}`
       );
     }
 
@@ -47,59 +46,26 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error("GET /api/policies error:", error);
-      return NextResponse.json(
-        { error: "Failed to load policies" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "Failed to load" }, { status: 500 });
     }
 
     return NextResponse.json({ policies: data ?? [] });
   } catch (err) {
-    console.error("GET /api/policies exception:", err);
-    return NextResponse.json(
-      { error: "Unexpected error loading policies" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-
-    if (!body) {
-      return NextResponse.json(
-        { error: "Invalid JSON body" },
-        { status: 400 }
-      );
-    }
-
-    const {
-      orgId,
-      facilityId,
-      title,
-      description,
-      fileUrl,
-      category,
-      tags,
-      createdBy, // optional; send profile.id from the client if you want
-    } = body as {
-      orgId: string;
-      facilityId?: string | null;
-      title: string;
-      description?: string | null;
-      fileUrl: string;
-      category?: string;
-      tags?: string[];
-      createdBy?: string | null;
-    };
+    const body = await req.json();
+    const { orgId, facilityId, title, description, fileUrl, category, tags, createdBy } = body;
 
     if (!orgId || !title || !fileUrl) {
-      return NextResponse.json(
-        { error: "orgId, title, and fileUrl are required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+
+    // Ensure tags are stored as a clean array for the database
+    const finalTags = Array.isArray(tags) ? tags : [];
 
     const { data, error } = await supabaseAdmin
       .from("policies")
@@ -109,27 +75,16 @@ export async function POST(req: NextRequest) {
         title,
         description: description ?? null,
         file_url: fileUrl,
-        category: (category as any) ?? "Other",
-        tags: tags ? JSON.stringify(tags) : "[]",
+        category: category ?? "Other",
+        tags: finalTags, // Supabase handles the array conversion
         created_by: createdBy ?? null,
       })
       .select("*")
       .single();
 
-    if (error) {
-      console.error("POST /api/policies error:", error);
-      return NextResponse.json(
-        { error: "Failed to create policy" },
-        { status: 500 }
-      );
-    }
-
+    if (error) throw error;
     return NextResponse.json({ policy: data }, { status: 201 });
-  } catch (err) {
-    console.error("POST /api/policies exception:", err);
-    return NextResponse.json(
-      { error: "Unexpected error creating policy" },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

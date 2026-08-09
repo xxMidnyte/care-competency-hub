@@ -1,4 +1,3 @@
-// app/dashboard/policies/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -20,69 +19,49 @@ type Policy = {
   description: string | null;
   category: string;
   file_url: string;
-  tags: any;
+  tags: string[];
   version_number: number;
   is_archived: boolean;
   created_at: string;
   updated_at: string;
+  source_batch_id?: string;
 };
 
-const CATEGORY_OPTIONS = [
-  "All",
-  "HR",
-  "Clinical",
-  "Safety",
-  "Emergency",
-  "Infection Control",
-  "Administrative",
-  "Other",
-];
+const CATEGORY_OPTIONS = ["All", "HR", "Clinical", "Safety", "Emergency", "Infection Control", "Administrative", "Other"];
 
+// UI Constants
 const card = "rounded-2xl border border-border bg-card shadow-card";
 const cardInner = "p-4";
-const muted = "text-foreground/60";
-const label =
-  "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60";
-const input =
-  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
-const select =
-  "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:border-transparent";
+const label = "text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/60";
+const input = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/50";
+const select = "w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/50";
 const chip = "rounded-full bg-muted px-2 py-1 text-[11px] text-foreground/70";
-const btnPrimary =
-  "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
-const btnSoft =
-  "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
-const btnDangerSoft =
-  "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-[color:var(--color-ring)] focus:ring-offset-2 focus:ring-offset-background";
+const btnPrimary = "inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-card transition hover:opacity-90";
+const btnSoft = "inline-flex items-center justify-center rounded-full border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground shadow-card transition hover:bg-muted";
+const btnDangerSoft = "inline-flex items-center justify-center rounded-full border border-red-500/20 bg-background px-4 py-2 text-sm font-semibold text-red-500 shadow-card transition hover:bg-red-500/5";
 
 export default function PoliciesPage() {
-  const router = useRouter();
-
   const { loading: orgLoading, org, organizationId } = useOrg();
   const userRole = org?.role ?? "staff";
-
-  const isDevOrg = org?.isDevOrg ?? false;
-  const hasPolicyModule = org?.featureFlags?.has_policy_module ?? false;
-  const hasModuleAccess = isDevOrg || hasPolicyModule;
-
-  const canManagePolicies =
-    userRole === "dev" || userRole === "admin" || userRole === "manager";
+  const hasModuleAccess = org?.isDevOrg || org?.featureFlags?.has_policy_module;
+  const canManagePolicies = ["dev", "admin", "manager"].includes(userRole);
 
   const [loading, setLoading] = useState(true);
   const [loadingPolicies, setLoadingPolicies] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [orgId, setOrgId] = useState<string | null>(null);
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [policies, setPolicies] = useState<Policy[]>([]);
 
-  const [selectedFacilityId, setSelectedFacilityId] = useState<string>("all");
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [search, setSearch] = useState<string>("");
-  const [includeArchived, setIncludeArchived] = useState<boolean>(false);
-  const [archiveUpdatingId, setArchiveUpdatingId] = useState<string | null>(
-    null
-  );
+  const [selectedFacilityId, setSelectedFacilityId] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [search, setSearch] = useState("");
+  const [includeArchived, setIncludeArchived] = useState(false);
+  
+  // Bulk Ingest State
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [stagedPolicies, setStagedPolicies] = useState<any[]>([]);
+  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
 
   const facilityNameMap = useMemo(() => {
     return facilities.reduce((acc, f) => {
@@ -91,409 +70,215 @@ export default function PoliciesPage() {
     }, {} as Record<string, string>);
   }, [facilities]);
 
-  // Initial load: org context -> facilities + policies
   useEffect(() => {
     async function load() {
+      if (orgLoading) return;
       try {
-        if (orgLoading) return;
-
         setLoading(true);
-        setError(null);
+        if (!organizationId || !hasModuleAccess) return;
 
-        if (!organizationId || !org) {
-          setError("Unable to load your organization.");
-          return;
-        }
-
-        if (!hasModuleAccess) {
-          setError("The policy library is not enabled for your organization yet.");
-          return;
-        }
-
-        setOrgId(organizationId);
-
-        // 1) Facilities
-        const { data: facilitiesData, error: facilitiesError } = await supabase
-          .from("facilities")
-          .select("id, name")
-          .eq("org_id", organizationId)
-          .order("name", { ascending: true });
-
-        if (facilitiesError) {
-          console.error("Facilities load error:", facilitiesError);
-          setError("Unable to load facilities.");
-          return;
-        }
-
-        setFacilities(facilitiesData ?? []);
-
-        // 2) Policies
-        await fetchPolicies(organizationId, {
-          facilityId: "all",
-          category: "All",
-          search: "",
-          includeArchived: false,
-        });
+        const { data: facs } = await supabase.from("facilities").select("id, name").eq("org_id", organizationId).order("name");
+        setFacilities(facs ?? []);
+        await fetchPolicies(organizationId);
       } catch (err) {
-        console.error("Policies initial load error:", err);
-        setError("Something went wrong loading policies.");
+        setError("Failed to load initial data.");
       } finally {
         setLoading(false);
       }
     }
-
     load();
-  }, [orgLoading, org, organizationId, hasModuleAccess]);
+  }, [orgLoading, organizationId, hasModuleAccess]);
 
-  async function fetchPolicies(
-    currentOrgId: string,
-    opts?: {
-      facilityId?: string;
-      category?: string;
-      search?: string;
-      includeArchived?: boolean;
-    }
-  ) {
+  async function fetchPolicies(oid: string, opts?: any) {
+    setLoadingPolicies(true);
+    const params = new URLSearchParams({ orgId: oid });
+    if (opts?.facilityId && opts.facilityId !== "all") params.set("facilityId", opts.facilityId);
+    if (opts?.category && opts.category !== "All") params.set("category", opts.category);
+    if (opts?.search) params.set("q", opts.search);
+    if (opts?.includeArchived) params.set("includeArchived", "true");
+
+    const res = await fetch(`/api/policies?${params.toString()}`);
+    const body = await res.json();
+    setPolicies(body.policies ?? []);
+    setLoadingPolicies(false);
+  }
+
+  const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result?.toString().split(',')[1] || "");
+    reader.onerror = reject;
+  });
+
+  async function handleBulkUpload(file: File) {
     try {
-      setLoadingPolicies(true);
-      setError(null);
+      setIsIngesting(true);
+      setProgress(5);
+      const fileBase64 = await toBase64(file);
+      
+      const { data: batch } = await supabase.from("policy_ingest_batches")
+        .insert([{ org_id: organizationId, original_filename: file.name, status: 'processing' }])
+        .select().single();
 
-      const facilityId =
-        opts?.facilityId && opts.facilityId !== "all"
-          ? opts.facilityId
-          : undefined;
-      const category =
-        opts?.category && opts.category !== "All" ? opts.category : undefined;
-      const q = opts?.search?.trim() || "";
-      const includeArch = opts?.includeArchived ?? false;
+      if (!batch) throw new Error("Could not create batch.");
+      setCurrentBatchId(batch.id);
 
-      const params = new URLSearchParams();
-      params.set("orgId", currentOrgId);
-      if (facilityId) params.set("facilityId", facilityId);
-      if (category) params.set("category", category);
-      if (q) params.set("q", q);
-      if (includeArch) params.set("includeArchived", "true");
+      // Process first batch
+      const { data: initialData, error: initialFnError } = await supabase.functions.invoke("quick-function", {
+        body: { fileBase64, orgId: organizationId, batchId: batch.id, startIdx: 0 },
+      });
+      if (initialFnError) throw initialFnError;
+      const { policies: initialPolicies, totalChunksFound } = initialData;
+      setStagedPolicies(initialPolicies);
 
-      const res = await fetch(`/api/policies?${params.toString()}`);
+      // Recursive Loop for remaining batches
+      const totalBatches = Math.ceil(totalChunksFound / 8);
+      let currentIdx = 8;
+      let batchesDone = 1;
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => null);
-        console.error("Failed to load policies:", body);
-        throw new Error(body?.error || "Failed to load policies.");
+      while (currentIdx < totalChunksFound) {
+        const { data: nextBatch, error: nextFnError } = await supabase.functions.invoke("quick-function", {
+          body: { fileBase64, orgId: organizationId, batchId: batch.id, startIdx: currentIdx },
+        });
+        if (nextFnError) throw nextFnError;
+        setStagedPolicies(prev => [...prev, ...nextBatch.policies]);
+        batchesDone++;
+        setProgress(Math.round((batchesDone / totalBatches) * 100));
+        currentIdx += 8;
       }
-
-      const body = (await res.json()) as { policies: Policy[] };
-      setPolicies(body.policies ?? []);
+      setProgress(100);
+      setTimeout(() => setProgress(0), 3000);
     } catch (err: any) {
-      console.error("fetchPolicies error:", err);
-      setError(err.message || "Unable to load policies.");
+      setError(err.message);
     } finally {
-      setLoadingPolicies(false);
+      setIsIngesting(false);
     }
   }
 
-  async function handleApplyFilters(e?: React.FormEvent) {
-    e?.preventDefault();
-    if (!orgId) return;
+  async function saveStagedPolicy(index: number) {
+    const p = stagedPolicies[index];
+    const { error: saveError } = await supabase.from("policies").insert([{
+      org_id: organizationId,
+      title: p.title,
+      description: p.description,
+      category: p.category,
+      tags: p.tags,
+      source_batch_id: currentBatchId,
+      file_url: "processing"
+    }]);
 
-    await fetchPolicies(orgId, {
-      facilityId: selectedFacilityId,
-      category: selectedCategory,
-      search,
-      includeArchived,
-    });
-  }
-
-  async function handleToggleArchive(policy: Policy) {
-    if (!canManagePolicies) return;
-
-    try {
-      setArchiveUpdatingId(policy.id);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from("policies")
-        .update({ is_archived: !policy.is_archived })
-        .eq("id", policy.id)
-        .select("id, is_archived")
-        .single();
-
-      if (error) throw new Error(error.message || "Failed to update policy.");
-      if (!data) throw new Error("No data returned from archive update.");
-
-      setPolicies((prev) =>
-        prev.map((p) =>
-          p.id === policy.id ? { ...p, is_archived: data.is_archived } : p
-        )
-      );
-    } catch (err: any) {
-      console.error("Archive toggle handler error:", err);
-      setError(err.message || "Unable to update policy.");
-    } finally {
-      setArchiveUpdatingId(null);
+    if (!saveError) {
+      setStagedPolicies(prev => prev.filter((_, i) => i !== index));
+      fetchPolicies(organizationId!);
     }
   }
 
-  // Loading wrapper
-  if (loading || orgLoading) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <div className="px-6 py-6 text-sm text-foreground/60">
-          Loading policies…
-        </div>
-      </div>
-    );
-  }
-
-  // Hard errors only: missing org context OR module not enabled
-  if (!organizationId || !hasModuleAccess) {
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <div className="mx-auto max-w-6xl px-6 py-8 space-y-3">
-          <h1 className="text-xl font-semibold">Policies</h1>
-          <p className="text-sm text-red-400">
-            {error ||
-              (!organizationId
-                ? "Unable to load your organization."
-                : "The policy library is not enabled for your organization yet.")}
-          </p>
-        </div>
-      </div>
-    );
-  }
+  if (loading || orgLoading) return <div className="p-6 text-sm opacity-60">Loading...</div>;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="mx-auto max-w-6xl px-6 py-8 space-y-6">
+        
         {/* HEADER */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Policies</h1>
-            <p className="mt-1 text-sm text-foreground/60">
-              Store, search, and manage policies for your organization.
-            </p>
+            <h1 className="text-2xl font-semibold">Policies</h1>
+            <p className="text-sm text-foreground/60">Organization library and compliance tools.</p>
           </div>
-
-          {canManagePolicies && (
-            <Link href="/dashboard/policies/new" className={btnPrimary}>
-              <span className="mr-2">＋</span>
-              Add policy
-            </Link>
-          )}
+          <div className="flex gap-2">
+            {canManagePolicies && (
+              <>
+                <button onClick={() => document.getElementById('bulk-ingest')?.click()} className={btnSoft} disabled={isIngesting}>
+                  {isIngesting ? "🧠 AI Ingesting..." : "🚀 Bulk Ingest"}
+                </button>
+                <input id="bulk-ingest" type="file" hidden accept=".pdf" onChange={(e) => e.target.files?.[0] && handleBulkUpload(e.target.files[0])} />
+                <Link href="/dashboard/policies/new" className={btnPrimary}>＋ Add policy</Link>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Non-hard error banner */}
-        {error && (
-          <div className="rounded-2xl border border-red-500/40 bg-red-950/40 px-4 py-3 text-sm text-red-200">
-            {error}
+        {/* PROGRESS BAR */}
+        {isIngesting && (
+          <div className="space-y-2 animate-in fade-in duration-500">
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-primary">
+              <span>Shredding Handbook...</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+        )}
+
+        {/* STAGING AREA */}
+        {stagedPolicies.length > 0 && (
+          <div className="rounded-2xl border-2 border-dashed border-primary/20 bg-primary/5 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-bold uppercase tracking-wider">AI Suggestions ({stagedPolicies.length})</h2>
+              <button onClick={() => setStagedPolicies([])} className="text-xs opacity-50 hover:opacity-100">Clear All</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {stagedPolicies.map((p, i) => (
+                <div key={i} className={`${card} p-4 flex flex-col`}>
+                  <input className={input + " mb-2 font-bold"} defaultValue={p.title} onBlur={(e) => stagedPolicies[i].title = e.target.value} />
+                  <textarea className={input + " text-xs h-16 resize-none mb-3"} defaultValue={p.description} onBlur={(e) => stagedPolicies[i].description = e.target.value} />
+                  <div className="mt-auto flex items-center justify-between">
+                    <div className="flex gap-1">
+                        {p.tags?.slice(0, 2).map((t: string) => <span key={t} className={chip}>{t}</span>)}
+                    </div>
+                    <button onClick={() => saveStagedPolicy(i)} className={btnPrimary + " py-1 px-3 text-xs"}>Confirm</button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {/* FILTERS */}
-        <form onSubmit={handleApplyFilters} className={`${card} ${cardInner}`}>
-          <div className="flex flex-wrap items-end gap-3">
-            {/* Facility */}
-            <div className="min-w-[180px] space-y-1">
-              <label className={label}>Facility</label>
-              <select
-                value={selectedFacilityId}
-                onChange={(e) => setSelectedFacilityId(e.target.value)}
-                className={select}
-              >
-                <option value="all">All facilities</option>
-                {facilities.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name || "Unnamed facility"}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Category */}
-            <div className="min-w-[180px] space-y-1">
-              <label className={label}>Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className={select}
-              >
-                {CATEGORY_OPTIONS.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Search */}
-            <div className="min-w-[220px] flex-1 space-y-1">
-              <label className={label}>Search</label>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search title or description…"
-                className={input}
-              />
-            </div>
-
-            {/* Include archived */}
-            <label className="flex items-center gap-2 text-sm text-foreground/70">
-              <input
-                type="checkbox"
-                checked={includeArchived}
-                onChange={(e) => setIncludeArchived(e.target.checked)}
-                className="h-4 w-4 rounded border-border bg-background"
-              />
-              Include archived
-            </label>
-
-            {/* Apply */}
-            <button
-              type="submit"
-              className={btnSoft}
-              disabled={loadingPolicies}
-            >
-              {loadingPolicies ? "Updating…" : "Apply filters"}
-            </button>
+        <form className={`${card} ${cardInner} flex flex-wrap items-end gap-3`} onSubmit={(e) => {
+            e.preventDefault();
+            fetchPolicies(organizationId!, { facilityId: selectedFacilityId, category: selectedCategory, search, includeArchived });
+        }}>
+          <div className="flex-1 min-w-[200px] space-y-1">
+            <label className={label}>Search</label>
+            <input type="text" className={input} placeholder="Search title, keywords, or tags..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
+          <div className="w-48 space-y-1">
+            <label className={label}>Category</label>
+            <select className={select} value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
+              {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <button type="submit" className={btnSoft} disabled={loadingPolicies}>{loadingPolicies ? "..." : "Filter"}</button>
         </form>
 
         {/* LIST */}
         <div className={card}>
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <span className="text-sm font-semibold">Policies</span>
-            <span className="text-xs text-foreground/60">
-              {policies.length} item{policies.length === 1 ? "" : "s"}
-            </span>
-          </div>
-
-          {policies.length === 0 ? (
-            <div className="px-4 py-8 text-sm text-foreground/60">
-              No policies found. Try adjusting your filters or{" "}
-              {canManagePolicies ? (
-                <Link
-                  href="/dashboard/policies/new"
-                  className="text-primary underline underline-offset-4"
-                >
-                  add your first policy
-                </Link>
-              ) : (
-                "ask your administrator to add policies"
-              )}
-              .
-            </div>
-          ) : (
-            <ul className="space-y-3 p-3">
-              {policies.map((policy) => {
-                const tagList = Array.isArray(policy.tags)
-                  ? (policy.tags as string[])
-                  : [];
-
-                const facilityName = policy.facility_id
-                  ? facilityNameMap[policy.facility_id] || "Unknown facility"
-                  : "All facilities";
-
-                const updated = new Date(policy.updated_at);
-
-                const archiveLabel = policy.is_archived ? "Unarchive" : "Archive";
-                const isArchiveBusy = archiveUpdatingId === policy.id;
-
-                return (
-                  <li key={policy.id}>
-                    <div
-                      className={`rounded-2xl border border-border bg-card shadow-card p-4 transition hover:opacity-95 ${
-                        policy.is_archived ? "opacity-70" : ""
-                      }`}
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link
-                              href={`/dashboard/policies/${policy.id}`}
-                              className="text-base font-semibold text-foreground hover:opacity-90"
-                            >
-                              {policy.title}
-                            </Link>
-
-                            {policy.is_archived && (
-                              <span className="rounded-full bg-muted px-2 py-1 text-[10px] font-semibold uppercase text-foreground/60">
-                                Archived
-                              </span>
-                            )}
-
-                            {policy.version_number > 1 && (
-                              <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase text-primary">
-                                v{policy.version_number}
-                              </span>
-                            )}
-                          </div>
-
-                          {policy.description && (
-                            <p className="text-sm text-foreground/60 line-clamp-2">
-                              {policy.description}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 text-[11px]">
-                          <span className={chip}>{policy.category}</span>
-                          <span className={chip}>{facilityName}</span>
-                          <span className={chip}>
-                            Updated{" "}
-                            {updated.toLocaleDateString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {tagList.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {tagList.map((tag) => (
-                            <span key={tag} className={chip}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                        <a
-                          href={policy.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={btnSoft}
-                        >
-                          View PDF
-                        </a>
-
-                        <Link
-                          href={`/dashboard/policies/${policy.id}`}
-                          className={btnSoft}
-                        >
-                          Details
-                        </Link>
-
-                        {canManagePolicies && (
-                          <button
-                            type="button"
-                            onClick={() => handleToggleArchive(policy)}
-                            disabled={isArchiveBusy}
-                            className={btnDangerSoft}
-                          >
-                            {isArchiveBusy ? "Updating…" : archiveLabel}
-                          </button>
-                        )}
-                      </div>
+          <div className="border-b border-border px-4 py-3 text-xs font-bold uppercase tracking-widest opacity-60">Library</div>
+          <ul className="divide-y divide-border">
+            {policies.length === 0 ? <li className="p-8 text-center text-sm opacity-50">No policies found.</li> : 
+              policies.map((p) => (
+              <li key={p.id} className="p-4 hover:bg-muted/30 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <Link href={`/dashboard/policies/${p.id}`} className="font-semibold hover:text-primary transition-colors">{p.title}</Link>
+                    <p className="text-xs text-foreground/60 line-clamp-1">{p.description}</p>
+                    <div className="flex gap-1 mt-2">
+                        {p.tags?.map(t => <span key={t} className="text-[10px] text-primary/70">#{t}</span>)}
                     </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+                  </div>
+                  <div className="flex gap-2">
+                    {p.file_url === "processing" ? (
+                      <span className="text-[10px] bg-yellow-500/10 text-yellow-600 px-2 py-1 rounded-full animate-pulse font-bold">SHREDDING...</span>
+                    ) : (
+                      <a href={p.file_url} target="_blank" className={btnSoft + " py-1 text-xs"}>View PDF</a>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </div>
